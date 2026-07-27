@@ -1795,10 +1795,10 @@ function App() {
       unit: "kg",
       col: C.green
     }), /*#__PURE__*/React.createElement(StatCard, {
-      label: "På skjema",
-      value: tgtW,
+      label: "Ned så langt",
+      value: (70 - bw) > 0 ? "-" + (70 - bw).toFixed(1) : "0",
       unit: "kg",
-      col: C.amber
+      col: C.pink
     }), /*#__PURE__*/React.createElement(StatCard, {
       label: "Økter uke",
       value: `${doneWk}/7`,
