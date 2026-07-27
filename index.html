@@ -189,37 +189,37 @@ function dailyTarget(key, bw, dayObj) {
 // ════════ TRENINGSSPLITT · Push/Pull/Upper/Lower + svøm, sykkel, løp ════════
 const SPLITS = {
   cut: {
-    note: "Vekttap · 2 styrke + 2 kondis. Styrke bevarer muskel og former kroppen mens du går ned. Kondis + underskudd gir fettap. Høyt protein holder deg mett. Resten av uka: hvile eller lett aktivitet.",
+    note: "Vekttap · Underkropp/rumpe 2x + overkropp 1x + kondis. Man og tir er felles med kjæresten (sykkel + svøm). Fokus på å forme rumpe og bein. Onsdag, torsdag og søndag er hvile.",
     days: [{
       day: "Man",
-      focus: "Styrke – Underkropp",
+      focus: "Underkropp + Sykkel",
       type: "lift",
-      desc: "Rumpe og bein: knebøy 3×10, hip thrust 3×12, utfall 3×10, RDL 3×10, leg curl, calf. Former og løfter. ~50 min."
+      desc: "Rumpe og bein: hip thrust 4×12, knebøy 3×10, utfall 3×12, RDL 3×10, leg curl, calf. Deretter sykkel sammen 🚴. ~50 min styrke."
     }, {
       day: "Tir",
-      focus: "Kondis – Intervall",
-      type: "run",
-      desc: "30–40 min: løp, sykkel eller crosstrainer. Gjerne intervaller (1 min hardt / 1 min rolig ×10) – forbrenner mye på kort tid."
+      focus: "Overkropp + Svøm",
+      type: "lift",
+      desc: "Rygg, skuldre, armer, mage: nedtrekk 3×12, roing 3×12, skulderpress 3×10, bicepscurl, triceps, planke. Deretter svøm sammen 🏊."
     }, {
       day: "Ons",
       focus: "Hvile / gåtur",
       type: "rest",
-      desc: "Restitusjon. En lang rolig gåtur (30–60 min) er perfekt – brenner kalorier uten å slite deg ut."
+      desc: "Restitusjon. En rolig gåtur (30–60 min) er perfekt – brenner kalorier uten å slite deg ut."
     }, {
       day: "Tor",
-      focus: "Styrke – Overkropp + Mage",
-      type: "lift",
-      desc: "Rygg, skuldre, armer, mage: nedtrekk 3×10, roing 3×12, skulderpress 3×10, bicepscurl, triceps, planke. ~50 min."
+      focus: "Hvile",
+      type: "rest",
+      desc: "Full hvile. Musklene former seg og bygger seg i hvilen. Spis nok protein."
     }, {
       day: "Fre",
-      focus: "Kondis – Rolig langt",
-      type: "run",
-      desc: "40–50 min rolig kondis i moderat tempo (sone 2). Rolig løp, sykkel eller rask gange. Bra fettforbrenning."
+      focus: "Underkropp + rumpe",
+      type: "lift",
+      desc: "Rumpefokus: hip thrust 4×12, bulgarian split squat 3×10, markløft 3×8, hip abduction, glute kickback, calf. Runde 2 for rumpe og bein. ~50 min."
     }, {
       day: "Lør",
-      focus: "Hvile / aktivitet",
-      type: "rest",
-      desc: "Fri, eller noe gøy og aktivt – tur, svømming, dans. Bevegelse som ikke føles som trening."
+      focus: "Løp",
+      type: "run",
+      desc: "Kondis: 30–40 min løp. Gjerne intervaller (1 min hardt / 1 min rolig ×10) eller rolig langtur – det du er opplagt til."
     }, {
       day: "Søn",
       focus: "Hvile",
@@ -228,17 +228,17 @@ const SPLITS = {
     }]
   },
   maintain: {
-    note: "Vedlikehold · Hold formen og vekten. 2 styrke + 2 kondis, men nå spiser du på vedlikeholdsnivå. Nyt resultatene!",
+    note: "Vedlikehold · Underkropp 2x + overkropp + kondis, men nå spiser du på vedlikeholdsnivå. Nyt resultatene og hold formen!",
     days: [{
       day: "Man",
-      focus: "Styrke – Underkropp",
+      focus: "Underkropp + Sykkel",
       type: "lift",
-      desc: "Rumpe og bein: knebøy, hip thrust, utfall, RDL, calf."
+      desc: "Rumpe og bein: hip thrust, knebøy, utfall, RDL. Deretter sykkel."
     }, {
       day: "Tir",
-      focus: "Kondis – Intervall",
-      type: "run",
-      desc: "30–40 min intervaller."
+      focus: "Overkropp + Svøm",
+      type: "lift",
+      desc: "Rygg, skuldre, armer, mage. Deretter svøm."
     }, {
       day: "Ons",
       focus: "Hvile / gåtur",
@@ -246,19 +246,19 @@ const SPLITS = {
       desc: "Restitusjon eller rolig gåtur."
     }, {
       day: "Tor",
-      focus: "Styrke – Overkropp + Mage",
-      type: "lift",
-      desc: "Rygg, skuldre, armer, mage."
+      focus: "Hvile",
+      type: "rest",
+      desc: "Full hvile."
     }, {
       day: "Fre",
-      focus: "Kondis – Rolig langt",
-      type: "run",
-      desc: "40–50 min rolig kondis."
+      focus: "Underkropp + rumpe",
+      type: "lift",
+      desc: "Rumpefokus: hip thrust, split squat, markløft, glute kickback."
     }, {
       day: "Lør",
-      focus: "Hvile / aktivitet",
-      type: "rest",
-      desc: "Fri eller aktiv tur."
+      focus: "Løp",
+      type: "run",
+      desc: "30–40 min løp eller intervaller."
     }, {
       day: "Søn",
       focus: "Hvile",
@@ -281,7 +281,7 @@ const typeIcon = {
   bike: "🚴",
   rest: "😴"
 };
-const EXERCISES = ["Hip thrust", "Knebøy", "RDL (rumensk)", "Utfall (walking lunge)", "Bulgarian split squat", "Leg curl", "Leggpress", "Markløft", "Nedtrekk (lat pulldown)", "Roing", "Skulderpress", "Lateral raise", "Bicepscurl", "Triceps pushdown", "Benkpress", "Planke"];
+const EXERCISES = ["Hip thrust", "Knebøy", "RDL (rumensk)", "Utfall (walking lunge)", "Bulgarian split squat", "Glute kickback", "Hip abduction", "Leg curl", "Leggpress", "Markløft", "Nedtrekk (lat pulldown)", "Roing", "Skulderpress", "Bicepscurl", "Planke"];
 
 // Teknikk-tips for hovedløftene
 const TECHNIQUE = {
@@ -454,7 +454,7 @@ async function askAI(userText, apiKey, ctx, history) {
   const m = macrosForPhase(phase.key, bw);
   const sys = `Du er en kunnskapsrik, varm og støttende personlig trener for en kvinne som vil gå ned i vekt og bli slankere og sterkere.
 Mål: gå ned i vekt på en sunn, bærekraftig måte (~0,6 kg/uke), bli slankere og forme kroppen. Blanding av styrke og kondis.
-Hun trener 4 dager i uka: 2 styrkeøkter (underkropp/rumpe + overkropp) og 2 kondisøkter. Resten er hvile eller lett aktivitet.
+Hun trener 3 styrkeøkter (underkropp/rumpe 2x + overkropp 1x) + kondis (sykkel man, svøm tir, løp lør). Onsdag, torsdag og søndag er hvile. Man og tir trener hun sammen med kjæresten.
 NÅ er fasen: «${phase.name}». Dagens økt: ${today.focus} — ${today.desc}.
 Dagsmål: ~${m.kcal} kcal, ${m.p}g protein, ${m.c}g karbo, ${m.f}g fett. Målvekt på skjema i dag: ~${tgtW} kg. Nåværende vekt: ${bw} kg.
 Hun fører dagstotaler for mat her. Legg vekt på metthet, protein, og at vekttap tar tid.
@@ -1481,7 +1481,7 @@ function App() {
       color: phase.accent,
       fontFamily: FONT_MONO
     }
-  }, tgtW, "kg")), /*#__PURE__*/React.createElement("button", {
+  }, "55kg")), /*#__PURE__*/React.createElement("button", {
     className: "ptbtn",
     onClick: () => {
       setShowSettings(true);
