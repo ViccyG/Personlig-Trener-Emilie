@@ -1,0 +1,4041 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Min Trener">
+<meta name="theme-color" content="#0a0c10">
+<title>Min Trener</title>
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Crect width='180' height='180' rx='40' fill='%230a0c10'/%3E%3Ctext x='90' y='125' font-size='100' text-anchor='middle'%3E%F0%9F%92%AA%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { background: #0a0c10; overscroll-behavior: none; }
+  body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif; }
+  input, select, button, textarea { font-family: inherit; }
+  input::placeholder, textarea::placeholder { color: #5b6678; }
+  input:focus, select:focus, textarea:focus { outline: none; }
+  .ptbtn { transition: transform 0.12s cubic-bezier(.34,1.56,.64,1), box-shadow 0.2s, background 0.2s; }
+  .ptbtn:active { transform: scale(0.96); }
+  @keyframes slideup { from { opacity:0; transform:translateY(14px);} to {opacity:1;transform:translateY(0);} }
+  @keyframes fadein { from { opacity:0;} to {opacity:1;} }
+  @keyframes pulse { 0%,100%{opacity:0.35;} 50%{opacity:1;} }
+  @keyframes pop { 0%{transform:scale(0.7);opacity:0;} 55%{transform:scale(1.08);} 100%{transform:scale(1);opacity:1;} }
+  @keyframes shimmer { 0%{background-position:-200% 0;} 100%{background-position:200% 0;} }
+  @keyframes glowpulse { 0%,100%{filter:drop-shadow(0 0 3px currentColor);} 50%{filter:drop-shadow(0 0 9px currentColor);} }
+  @keyframes float { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-4px);} }
+  .card-enter { animation: slideup 0.45s cubic-bezier(.22,1,.36,1) both; }
+  .stagger > * { animation: slideup 0.5s cubic-bezier(.22,1,.36,1) both; }
+  .stagger > *:nth-child(1){animation-delay:.02s} .stagger > *:nth-child(2){animation-delay:.06s}
+  .stagger > *:nth-child(3){animation-delay:.10s} .stagger > *:nth-child(4){animation-delay:.14s}
+  .stagger > *:nth-child(5){animation-delay:.18s} .stagger > *:nth-child(6){animation-delay:.22s}
+  .stagger > *:nth-child(7){animation-delay:.26s} .stagger > *:nth-child(8){animation-delay:.30s}
+  input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
+  ::-webkit-scrollbar { width: 0; background: transparent; }
+  @media (prefers-reduced-motion: reduce) { *, .card-enter, .stagger > * { animation: none !important; } }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script>
+const {
+  useState,
+  useEffect,
+  useRef
+} = React;
+
+// Rikt, dypt mørkt tema – "performance instrument" estetikk
+const C = {
+  bg: "#070809",
+  // dypeste bakgrunn
+  bg2: "#0a0c11",
+  // litt lysere base
+  panel: "#10131a",
+  // kort-overflate
+  panel2: "#161a23",
+  // hevet overflate
+  panelHi: "#1b2030",
+  // sterkt hevet
+  line: "#222a38",
+  // kantlinje
+  lineHi: "#2e3850",
+  // markert kant
+  ink: "#eef1f7",
+  // hovedtekst
+  ink2: "#aab4c5",
+  // sekundærtekst
+  dim: "#5c6678",
+  // dempet
+  faint: "#171c26",
+  // svakeste fyll
+  amber: "#ffc233",
+  amberD: "#b8860b",
+  green: "#3ddb8f",
+  greenD: "#1a9d62",
+  blue: "#3ba9ff",
+  blueD: "#1d6fc4",
+  orange: "#ff8a4c",
+  orangeD: "#c45a1d",
+  pink: "#ff5277",
+  pinkD: "#c41d44",
+  violet: "#b08cff",
+  violetD: "#6d3dd4",
+  teal: "#2fe0c8",
+  tealD: "#11998e"
+};
+
+// Animert tall som teller seg opp
+function useCountUp(target, dur = 700) {
+  const [val, setVal] = React.useState(0);
+  const ref = React.useRef(0);
+  React.useEffect(() => {
+    const start = performance.now(),
+      from = ref.current;
+    let raf;
+    const tick = t => {
+      const p = Math.min((t - start) / dur, 1);
+      const e = 1 - Math.pow(1 - p, 3); // ease-out cubic
+      const v = from + (target - from) * e;
+      setVal(v);
+      ref.current = v;
+      if (p < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [target, dur]);
+  return val;
+}
+
+// ════════ TIDSLINJE ════════
+// Vekttap: 70 kg → 55 kg til neste sommer (~juni 2027). Rolig ~0,35 kg/uke.
+// Fokus: gå ned i vekt sunt og bærekraftig, bli slankere og sterkere. 165 cm.
+const GOAL_DATE = "2027-03-15"; // ~35 uker ved 0,43 kg/uke
+function phaseForDate(dateStr) {
+  const d = new Date(dateStr);
+  if (d <= new Date(GOAL_DATE)) return {
+    key: "cut",
+    name: "Vekttap",
+    accent: C.pink
+  };
+  return {
+    key: "maintain",
+    name: "Vedlikehold",
+    accent: C.teal
+  };
+}
+
+// Vektmål for en gitt dato (lineær interpolasjon mellom milepæler)
+function targetWeightForDate(dateStr) {
+  const d = new Date(dateStr).getTime();
+  const pts = [["2026-07-13", 70.0],
+  // start
+  ["2027-03-15", 55.0],
+  // mål ~35 uker: ~0,43 kg/uke
+  ["2027-09-01", 55.0] // vedlikehold
+  ].map(([ds, w]) => [new Date(ds).getTime(), w]);
+  if (d <= pts[0][0]) return pts[0][1];
+  if (d >= pts[pts.length - 1][0]) return pts[pts.length - 1][1];
+  for (let i = 0; i < pts.length - 1; i++) {
+    if (d >= pts[i][0] && d <= pts[i + 1][0]) {
+      const f = (d - pts[i][0]) / (pts[i + 1][0] - pts[i][0]);
+      return +(pts[i][1] + f * (pts[i + 1][1] - pts[i][1])).toFixed(1);
+    }
+  }
+  return pts[pts.length - 1][1];
+}
+function macrosForPhase(key, bw) {
+  const p = Math.round(bw * 1.9); // høyt protein bevarer muskel + metthet under vekttap
+  // Mifflin-St Jeor BMR for kvinne 165cm, ~28 år, × aktivitet 1.45
+  const tdee = (10 * bw + 6.25 * 165 - 5 * 28 - 161) * 1.45;
+  if (key === "cut") {
+    const kcal = Math.round(tdee - 475); // moderat underskudd → ~0,43 kg/uke, starter ~1600
+    return { kcal, p, c: Math.round((kcal - p * 4 - Math.round(bw * 0.8) * 9) / 4), f: Math.round(bw * 0.8) };
+  }
+  const kcal = Math.round(tdee);
+  return { kcal, p, c: Math.round((kcal - p * 4 - Math.round(bw * 0.9) * 9) / 4), f: Math.round(bw * 0.9) };
+}
+
+// Ekstra kalorier for dagens kondisøkt (justerer maten etter treningen)
+function cardioBonus(dayObj) {
+  if (!dayObj) return { kcal: 0, label: "" };
+  const focus = (dayObj.focus || "").toLowerCase();
+  const type = dayObj.type;
+  if (type === "bike" || focus.includes("sykkel")) return { kcal: 250, label: "🚴 Sykkeldag – litt ekstra", carbs: 45 };
+  if (type === "run" || focus.includes("løp")) return { kcal: 250, label: "🏃 Løpedag – litt ekstra", carbs: 45 };
+  if (type === "swim" || focus.includes("svøm")) return { kcal: 200, label: "🏊 Svømmedag – litt ekstra", carbs: 35 };
+  if (focus.includes("kondis") || focus.includes("intervall") || focus.includes("gå") || type === "cardio") return { kcal: 200, label: "🔥 Kondisdag – litt ekstra", carbs: 35 };
+  return { kcal: 0, label: "" };
+}
+// Dagens totale kaloriemål inkl. kondis
+function dailyTarget(key, bw, dayObj) {
+  const base = macrosForPhase(key, bw);
+  const bonus = cardioBonus(dayObj);
+  return {
+    kcal: base.kcal + bonus.kcal,
+    p: base.p,
+    c: base.c + (bonus.carbs || 0),
+    f: base.f,
+    bonus,
+  };
+}
+
+// ════════ TRENINGSSPLITT · Push/Pull/Upper/Lower + svøm, sykkel, løp ════════
+const SPLITS = {
+  cut: {
+    note: "Vekttap · 2 styrke + 2 kondis. Styrke bevarer muskel og former kroppen mens du går ned. Kondis + underskudd gir fettap. Høyt protein holder deg mett. Resten av uka: hvile eller lett aktivitet.",
+    days: [{
+      day: "Man",
+      focus: "Styrke – Underkropp",
+      type: "lift",
+      desc: "Rumpe og bein: knebøy 3×10, hip thrust 3×12, utfall 3×10, RDL 3×10, leg curl, calf. Former og løfter. ~50 min."
+    }, {
+      day: "Tir",
+      focus: "Kondis – Intervall",
+      type: "run",
+      desc: "30–40 min: løp, sykkel eller crosstrainer. Gjerne intervaller (1 min hardt / 1 min rolig ×10) – forbrenner mye på kort tid."
+    }, {
+      day: "Ons",
+      focus: "Hvile / gåtur",
+      type: "rest",
+      desc: "Restitusjon. En lang rolig gåtur (30–60 min) er perfekt – brenner kalorier uten å slite deg ut."
+    }, {
+      day: "Tor",
+      focus: "Styrke – Overkropp + Mage",
+      type: "lift",
+      desc: "Rygg, skuldre, armer, mage: nedtrekk 3×10, roing 3×12, skulderpress 3×10, bicepscurl, triceps, planke. ~50 min."
+    }, {
+      day: "Fre",
+      focus: "Kondis – Rolig langt",
+      type: "run",
+      desc: "40–50 min rolig kondis i moderat tempo (sone 2). Rolig løp, sykkel eller rask gange. Bra fettforbrenning."
+    }, {
+      day: "Lør",
+      focus: "Hvile / aktivitet",
+      type: "rest",
+      desc: "Fri, eller noe gøy og aktivt – tur, svømming, dans. Bevegelse som ikke føles som trening."
+    }, {
+      day: "Søn",
+      focus: "Hvile",
+      type: "rest",
+      desc: "Full hvile. Lad opp til ny uke. Restitusjon er en del av planen."
+    }]
+  },
+  maintain: {
+    note: "Vedlikehold · Hold formen og vekten. 2 styrke + 2 kondis, men nå spiser du på vedlikeholdsnivå. Nyt resultatene!",
+    days: [{
+      day: "Man",
+      focus: "Styrke – Underkropp",
+      type: "lift",
+      desc: "Rumpe og bein: knebøy, hip thrust, utfall, RDL, calf."
+    }, {
+      day: "Tir",
+      focus: "Kondis – Intervall",
+      type: "run",
+      desc: "30–40 min intervaller."
+    }, {
+      day: "Ons",
+      focus: "Hvile / gåtur",
+      type: "rest",
+      desc: "Restitusjon eller rolig gåtur."
+    }, {
+      day: "Tor",
+      focus: "Styrke – Overkropp + Mage",
+      type: "lift",
+      desc: "Rygg, skuldre, armer, mage."
+    }, {
+      day: "Fre",
+      focus: "Kondis – Rolig langt",
+      type: "run",
+      desc: "40–50 min rolig kondis."
+    }, {
+      day: "Lør",
+      focus: "Hvile / aktivitet",
+      type: "rest",
+      desc: "Fri eller aktiv tur."
+    }, {
+      day: "Søn",
+      focus: "Hvile",
+      type: "rest",
+      desc: "Full hvile."
+    }]
+  }
+};
+const typeColor = {
+  lift: C.amber,
+  run: C.green,
+  swim: C.blue,
+  bike: C.orange,
+  rest: C.dim
+};
+const typeIcon = {
+  lift: "🏋️",
+  run: "🏃",
+  swim: "🏊",
+  bike: "🚴",
+  rest: "😴"
+};
+const EXERCISES = ["Hip thrust", "Knebøy", "RDL (rumensk)", "Utfall (walking lunge)", "Bulgarian split squat", "Leg curl", "Leggpress", "Markløft", "Nedtrekk (lat pulldown)", "Roing", "Skulderpress", "Lateral raise", "Bicepscurl", "Triceps pushdown", "Benkpress", "Planke"];
+
+// Teknikk-tips for hovedløftene
+const TECHNIQUE = {
+  "Benkpress": ["Skulderbladene trukket sammen og ned, brystet opp.", "Stang ned til midt på brystet, albuer ~45° (ikke rett ut).", "Press opp og litt bakover mot skuldrene. Føttene plantet, spenn hele kroppen."],
+  "Knebøy": ["Stang på øvre rygg, brystet opp, kjernen spent.", "Skyv hoftene bakover OG bøy knærne samtidig, knærne ut.", "Ned til minst parallell (lår vannrett). Press fra hælene opp."],
+  "Markløft": ["Stang over midtfot, skinnleggen nesten mot stanga.", "Rett rygg (nøytral), brystet opp, skuldre litt foran stanga.", "Press fra gulvet med beina, hold stanga inntil kroppen hele veien. Lås ut med glutes."],
+  "Skulderpress (OHP)": ["Stang på øvre bryst, albuer litt foran.", "Spenn glutes og kjerne så du ikke svaier i ryggen.", "Press rett opp, før hodet litt fram når stanga passerer pannen."],
+  "RDL (rumensk)": ["Lett bøyde knær, hold dem der hele bevegelsen.", "Skyv hoftene bakover, stang tett inntil beina.", "Kjenn strekk i hamstrings, ned til ~midt på skinnleggen. Rett rygg hele tiden."],
+  "Pull-ups (m/vekt)": ["Fullt heng nederst, skuldre aktivert (ikke slappe).", "Trekk albuene ned og bakover, før brystet mot stanga.", "Kontrollert ned til full strekk. Legg på vekt når 8+ reps går lett."],
+  "Bicep dumbbell curl": ["Albuene inntil siden, fast.", "Curl opp uten å svinge med kroppen, klem på toppen.", "Senk sakte (3 sek). Full strekk nederst."],
+  "Flatt dumbbell press": ["Manualer over brystet, håndledd rett.", "Senk kontrollert til brystnivå, kjenn strekk.", "Press opp og litt inn. Større bevegelsesbane enn stang."]
+};
+
+// Konkret dagsplan per fase – klokkeslett, mat og mengder
+const MEAL_TIPS = {
+  cut: [{
+    t: "08:00 · Frokost",
+    tip: "2 egg + 1 skive grovbrød + tomat/agurk, eller 200g skyr med bær. ~300 kcal, 25g protein. Proteinrik start metter lenge."
+  }, {
+    t: "12:00 · Lunsj",
+    tip: "Stor salat med kylling/tunfisk/egg + litt olje. ~350 kcal, 35g protein. Fyll tallerkenen med grønt – mye mat, få kalorier."
+  }, {
+    t: "15:00 · Mellommåltid",
+    tip: "Vrikvarg eller skyr + en håndfull bær, eller en liten proteinbar. ~150 kcal, 20g protein. Holder sulten unna til middag."
+  }, {
+    t: "18:00 · Middag",
+    tip: "Mager protein (kylling/fisk/kjøttdeig 5%) + masse grønnsaker + en liten porsjon poteter/ris. ~450 kcal, 40g protein."
+  }, {
+    t: "Kveld (ved sult)",
+    tip: "Litt mager kvarg, en boks tunfisk, eller grønnsaker med dip. Protein + volum uten mye kalorier. Ikke gå sulten til sengs."
+  }, {
+    t: "Tips for metthet",
+    tip: "Drikk vann før måltider, spis protein og grønt først, og ta deg tid. Metthet kommer 20 min etter du har spist."
+  }],
+  maintain: [{
+    t: "Generelt",
+    tip: "Nå spiser du for å holde vekten. Fortsett med proteinrike måltider og masse grønt, men du har litt mer rom for karbo og godsaker. Lytt til sulten."
+  }]
+};
+
+// Måltidsbibliotek – norske, proteinrike måltider med ca. makros
+const MEAL_LIBRARY = [{
+  cat: "Frokost",
+  name: "Skyr med bær",
+  kcal: 220, p: 28, c: 22, f: 3,
+  items: "250g skyr, en håndfull bær, litt kanel"
+}, {
+  cat: "Frokost",
+  name: "Egg + grovbrød",
+  kcal: 280, p: 20, c: 24, f: 12,
+  items: "2 egg, 1 skive grovbrød, tomat/agurk"
+}, {
+  cat: "Frokost",
+  name: "Proteinhavregrøt",
+  kcal: 300, p: 25, c: 40, f: 5,
+  items: "50g havre, vann/melk, 1 scoop proteinpulver"
+}, {
+  cat: "Lunsj",
+  name: "Kyllingsalat",
+  kcal: 350, p: 38, c: 15, f: 15,
+  items: "150g kylling, stor salat, olje/eddik-dressing"
+}, {
+  cat: "Lunsj",
+  name: "Tunfiskwrap",
+  kcal: 330, p: 30, c: 35, f: 8,
+  items: "1 tunfisk i vann, liten wrap, salat, mais"
+}, {
+  cat: "Lunsj",
+  name: "Eggerøre + grønt",
+  kcal: 300, p: 26, c: 12, f: 18,
+  items: "3 egg, spinat, sopp, paprika"
+}, {
+  cat: "Middag",
+  name: "Kylling + grønnsaker",
+  kcal: 400, p: 42, c: 30, f: 12,
+  items: "180g kylling, blandede grønnsaker, 100g ris"
+}, {
+  cat: "Middag",
+  name: "Torsk + poteter",
+  kcal: 380, p: 40, c: 35, f: 8,
+  items: "200g torsk, 200g kokt potet, ertestuing"
+}, {
+  cat: "Middag",
+  name: "Mager kjøttdeig-taco",
+  kcal: 450, p: 38, c: 35, f: 16,
+  items: "150g kjøttdeig 5%, salat, litt lomper, salsa"
+}, {
+  cat: "Snacks",
+  name: "Kvarg + bær",
+  kcal: 130, p: 20, c: 10, f: 1,
+  items: "150g mager kvarg, litt bær"
+}, {
+  cat: "Snacks",
+  name: "Grønnsaker + dip",
+  kcal: 120, p: 8, c: 10, f: 6,
+  items: "Gulrot/agurk/paprika + cottage cheese-dip"
+}, {
+  cat: "Snacks",
+  name: "Kokt egg + frukt",
+  kcal: 150, p: 12, c: 15, f: 6,
+  items: "2 kokte egg + 1 eple"
+}];
+
+// ─── COACH (regelbasert) ───
+function coachReply(input, ctx) {
+  const t = input.toLowerCase();
+  const {
+    phase,
+    today,
+    tomorrow,
+    bw
+  } = ctx;
+  const m = macrosForPhase(phase.key, bw);
+  if (/(glemt|glemte|hoppa|hoppet|missa|mistet|skippa|droppa|ikke trent|fikk ikke|rakk ikke)/.test(t)) {
+    return {
+      tone: C.amber,
+      title: "Glemt en økt? Ikke noe stress.",
+      body: [`Én tapt økt betyr ingenting i det store bildet. Kroppen mister ikke fremgang av én dag.`, `IKKE doble opp i morgen – det gir dårligere kvalitet og skaderisiko.`, `Fortsett som normalt. I dag: «${today.focus}». Eller gå videre til «${tomorrow.focus}» i morgen.`, `Nøkkeløkt (tung styrke/intervall)? Bytt den med en lettere dag senere. Rolig kondis? Bare glem den.`]
+    };
+  }
+  if (/(cheat|junk|pizza|burger|kebab|godteri|sjokolade|øl|alkohol|drakk|fest|overspis|spiste for mye|skeiet ut)/.test(t)) {
+    const lean = phase.key === "cut" || phase.key === "recomp";
+    return {
+      tone: C.pink,
+      title: lean ? "Cheat på cut/rekomp — vær obs." : "Cheat på bulk? Helt greit.",
+      body: lean ? [`Du jobber mot lav fettprosent nå, så et stort cheat kan sette deg tilbake noen dager.`, `Men én glipp ødelegger ingenting. Gå tilbake til ~${m.kcal} kcal i morgen — ikke "straff" deg med ekstra kutt.`, `Drikk ekstra vann (cheat gir vannretensjon — vekten hopper 1–2 kg, IKKE fett).`, `Hold proteinet på ${m.p}g i morgen. Fortsett planen.`] : [`Du er i bulk, så ekstra kalorier går rett inn i overskuddet. Helt greit.`, `Nyt det. Få gjerne litt protein i måltidet så du holder ${m.p}g-målet.`, `Tren normalt i morgen. Ingen straff-kardio.`]
+    };
+  }
+  if (/(syk|forkjøl|forkjølet|feber|vond i halsen|hoste|influensa|kvalm|magesyk|slapp)/.test(t)) {
+    return {
+      tone: C.blue,
+      title: "Syk? Nakke-regelen.",
+      body: [`Symptomer OVER halsen (nese, lett sår hals) = tren lett. UNDER halsen (bryst, feber) = HVIL.`, `Feber: ikke tren i det hele tatt. Kan gi hjertekomplikasjoner.`, `3–5 tapte dager koster nesten ingenting. Å presse gjennom koster uker.`, `Frisk igjen: start på 70% de første 2 dagene.`]
+    };
+  }
+  if (/(trøtt|sliten|øm|ømme|utmattet|orker ikke|sover dårlig|lite søvn|overtrent|sovet)/.test(t)) {
+    return {
+      tone: C.violet,
+      title: "Sliten? Lytt til det.",
+      body: [`Vedvarende tretthet er kroppens viktigste signal – ofte for lite søvn.`, `Får du 8–9 timer? Hvis ikke, er DET problemet, ikke treningen.`, `Utbrent? Ekstra hviledag eller halv intensitet. Smart, ikke latskap.`, `Muskler bygges i HVILEN. Logg søvnen din i Mer-fanen så vi ser mønsteret.`]
+    };
+  }
+  if (/(hva skal jeg spise|kosthold|mat|kalorier|protein|måltid|diett|makro)/.test(t)) {
+    return {
+      tone: C.green,
+      title: `Kosthold nå (${phase.name})`,
+      body: [`Dagsmål: ~${m.kcal} kcal · ${m.p}g protein · ${m.c}g karbo · ${m.f}g fett.`, phase.key === "bulk" ? `Bulk = overskudd. Spis rikelig, mye protein og karbo rundt trening.` : phase.key === "cut" ? `Cut = underskudd. Hold proteinet HØYT (${m.p}g) for å bevare muskel og abs.` : phase.key === "recomp" ? `Rekomp = vedlikehold. Hold vekten, bytt fett mot muskel. Høyt protein.` : `Vedlikehold. Spis balansert, hold vekten.`, `Faste regler: 2,2g+ protein/kg, fett ikke under ${Math.round(bw * 0.8)}g (hormoner!), 3–4L vann.`, `Du tracker detaljene i en annen app – før dagstotalen i Mat-fanen så ser du om du treffer.`]
+    };
+  }
+  if (/(i dag|dagens|hva skal jeg|trene i dag|på planen)/.test(t)) {
+    return {
+      tone: phase.accent,
+      title: `I dag: ${today.focus}`,
+      body: [`${typeIcon[today.type]} ${today.desc}`, `Fase: ${phase.name}. På skjema i dag: ~${ctx.tgtW} kg.`, `Kjør med fokus. Logg resultatet etterpå.`]
+    };
+  }
+  return {
+    tone: C.blue,
+    title: "Jeg er coachen din — spør i vei!",
+    body: [`Jeg kan hjelpe med blant annet:`, `• «Glemte en økt» — komme på sporet`, `• «Vil ha cheat meal» — hva nå`, `• «Er forkjølet / sliten» — trene eller hvile?`, `• «Hva skal jeg spise?» — kosthold for fasen`, `Skriv med egne ord. (Slå på AI i ⚙️ for friere samtaler.)`]
+  };
+}
+async function askAI(userText, apiKey, ctx, history) {
+  const {
+    phase,
+    today,
+    bw,
+    tgtW
+  } = ctx;
+  const m = macrosForPhase(phase.key, bw);
+  const sys = `Du er en kunnskapsrik, varm og støttende personlig trener for en kvinne som vil gå ned i vekt og bli slankere og sterkere.
+Mål: gå ned i vekt på en sunn, bærekraftig måte (~0,6 kg/uke), bli slankere og forme kroppen. Blanding av styrke og kondis.
+Hun trener 4 dager i uka: 2 styrkeøkter (underkropp/rumpe + overkropp) og 2 kondisøkter. Resten er hvile eller lett aktivitet.
+NÅ er fasen: «${phase.name}». Dagens økt: ${today.focus} — ${today.desc}.
+Dagsmål: ~${m.kcal} kcal, ${m.p}g protein, ${m.c}g karbo, ${m.f}g fett. Målvekt på skjema i dag: ~${tgtW} kg. Nåværende vekt: ${bw} kg.
+Hun fører dagstotaler for mat her. Legg vekt på metthet, protein, og at vekttap tar tid.
+Vær ALLTID oppmuntrende og positiv – aldri kroppsnegativ eller streng. Fokuser på helse, energi og styrke, ikke bare tall. Svar på norsk, kort og varmt (maks 4-5 setninger).`;
+  const messages = [...history.filter(h => h.role === "user" || h.role === "assistant").slice(-6).map(h => ({
+    role: h.role === "user" ? "user" : "assistant",
+    content: h.role === "user" ? h.text : (h.body || []).join("\n")
+  })), {
+    role: "user",
+    content: userText
+  }];
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+      "anthropic-dangerous-direct-browser-access": "true"
+    },
+    body: JSON.stringify({
+      model: "claude-3-5-haiku-20241022",
+      max_tokens: 400,
+      system: sys,
+      messages
+    })
+  });
+  if (!res.ok) {
+    const e = await res.text();
+    throw new Error(res.status === 401 ? "Ugyldig API-nøkkel" : `Feil ${res.status}`);
+  }
+  const data = await res.json();
+  return (data.content || []).map(b => b.text || "").join("\n").trim() || "(tomt svar)";
+}
+function load(key, fb) {
+  try {
+    const v = localStorage.getItem(key);
+    return v ? JSON.parse(v) : fb;
+  } catch {
+    return fb;
+  }
+}
+function save(key, val) {
+  try {
+    localStorage.setItem(key, JSON.stringify(val));
+  } catch {}
+}
+function todayStr() {
+  return new Date().toISOString().slice(0, 10);
+}
+function dayIdxMon0() {
+  const d = new Date().getDay();
+  return d === 0 ? 6 : d - 1;
+}
+function fmtTime(sec) {
+  const m = Math.floor(sec / 60),
+    s = sec % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+function fmtPace(sec) {
+  const p = sec / 5;
+  const m = Math.floor(p / 60),
+    s = Math.round(p % 60);
+  return `${m}:${String(s).padStart(2, "0")}/km`;
+}
+// søvn lagres enten som tall (gammelt) eller {hrs,score} (nytt) – hent timer trygt
+function sleepHours(v) {
+  if (v == null) return null;
+  return typeof v === "object" ? v.hrs : v;
+}
+function sleepScoreVal(v) {
+  return v && typeof v === "object" ? v.score : null;
+}
+function daysUntil(dateStr) {
+  const ms = new Date(dateStr) - new Date(todayStr());
+  return Math.round(ms / 864e5);
+}
+// Epley-formel: estimert 1RM fra vekt × reps
+function est1RM(kg, reps) {
+  if (reps <= 1) return kg;
+  return Math.round(kg * (1 + reps / 30));
+}
+// vekt du kan løfte for gitt antall reps fra et 1RM
+function weightForReps(orm, reps) {
+  if (reps <= 1) return orm;
+  return Math.round(orm / (1 + reps / 30));
+}
+
+// ─── komponenter ───
+const FONT_DISPLAY = "'Sora', sans-serif";
+const FONT_MONO = "'JetBrains Mono', monospace";
+
+// Hevet kort med dybde og subtil gradient
+function Card({
+  children,
+  style = {},
+  accent,
+  className = ""
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    className: className,
+    style: {
+      background: `linear-gradient(168deg, ${C.panel2} 0%, ${C.panel} 60%)`,
+      border: `1px solid ${C.line}`,
+      borderRadius: "18px",
+      boxShadow: `0 1px 0 rgba(255,255,255,0.03) inset, 0 8px 24px -12px rgba(0,0,0,0.7)`,
+      ...(accent ? {
+        borderTop: `1px solid ${accent}33`
+      } : {}),
+      ...style
+    }
+  }, children);
+}
+function StatCard({
+  label,
+  value,
+  unit,
+  col,
+  icon
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "relative",
+      background: `linear-gradient(165deg, ${C.panel2}, ${C.panel})`,
+      border: `1px solid ${C.line}`,
+      borderRadius: "16px",
+      padding: "14px 10px",
+      textAlign: "center",
+      overflow: "hidden",
+      boxShadow: "0 6px 18px -12px rgba(0,0,0,0.8)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      height: "2px",
+      background: `linear-gradient(90deg, transparent, ${col}, transparent)`,
+      opacity: 0.5
+    }
+  }), icon && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: "13px",
+      marginBottom: "3px",
+      opacity: 0.85
+    }
+  }, icon), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: "21px",
+      fontWeight: "800",
+      color: col,
+      fontFamily: FONT_MONO,
+      lineHeight: 1,
+      letterSpacing: "-0.02em"
+    }
+  }, value, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: "11px",
+      opacity: 0.7
+    }
+  }, unit)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: "8.5px",
+      color: C.dim,
+      marginTop: "5px",
+      textTransform: "uppercase",
+      letterSpacing: "0.12em",
+      fontWeight: "600"
+    }
+  }, label));
+}
+function Section({
+  title,
+  col,
+  children,
+  right
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    className: "card-enter",
+    style: {
+      background: `linear-gradient(168deg, ${C.panel2} 0%, ${C.panel} 55%)`,
+      border: `1px solid ${C.line}`,
+      borderRadius: "18px",
+      padding: "17px",
+      marginBottom: "13px",
+      boxShadow: "0 8px 24px -14px rgba(0,0,0,0.75)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: "13px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: "8px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: "3px",
+      height: "13px",
+      borderRadius: "2px",
+      background: col,
+      boxShadow: `0 0 8px ${col}88`
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: "10.5px",
+      color: C.ink2,
+      textTransform: "uppercase",
+      letterSpacing: "0.18em",
+      fontWeight: "700"
+    }
+  }, title)), right), children);
+}
+function Empty({
+  text
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: "12px",
+      color: C.dim,
+      textAlign: "center",
+      padding: "24px 14px",
+      lineHeight: 1.6
+    }
+  }, text);
+}
+const inputStyle = {
+  flex: 1,
+  background: C.bg,
+  border: `1px solid ${C.line}`,
+  borderRadius: "12px",
+  padding: "12px 14px",
+  color: C.ink,
+  fontSize: "16px",
+  transition: "border-color 0.18s"
+};
+function pillBtn(col) {
+  return {
+    background: `linear-gradient(160deg, ${col}, ${col}dd)`,
+    color: "#08090c",
+    border: "none",
+    borderRadius: "12px",
+    padding: "12px 18px",
+    fontSize: "15px",
+    fontWeight: "700",
+    cursor: "pointer",
+    flexShrink: 0,
+    boxShadow: `0 4px 14px -4px ${col}88`,
+    fontFamily: FONT_DISPLAY
+  };
+}
+
+// Animert glød-ring med gradient
+function Ring({
+  value,
+  target,
+  label,
+  unit,
+  col,
+  size = 78
+}) {
+  const animVal = useCountUp(value, 800);
+  const pct = Math.min(value / target, 1),
+    r = size / 2 - 7,
+    circ = 2 * Math.PI * r;
+  const over = value > target * 1.05,
+    ringCol = over ? C.pink : col;
+  const gid = "g" + label.replace(/\s/g, "") + col.replace("#", "");
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: "center"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "relative",
+      width: size,
+      height: size,
+      margin: "0 auto"
+    }
+  }, /*#__PURE__*/React.createElement("svg", {
+    width: size,
+    height: size,
+    style: {
+      transform: "rotate(-90deg)"
+    }
+  }, /*#__PURE__*/React.createElement("defs", null, /*#__PURE__*/React.createElement("linearGradient", {
+    id: gid,
+    x1: "0%",
+    y1: "0%",
+    x2: "100%",
+    y2: "100%"
+  }, /*#__PURE__*/React.createElement("stop", {
+    offset: "0%",
+    stopColor: ringCol
+  }), /*#__PURE__*/React.createElement("stop", {
+    offset: "100%",
+    stopColor: over ? C.pinkD : col,
+    stopOpacity: "0.7"
+  }))), /*#__PURE__*/React.createElement("circle", {
+    cx: size / 2,
+    cy: size / 2,
+    r: r,
+    fill: "none",
+    stroke: C.faint,
+    strokeWidth: "6.5"
+  }), /*#__PURE__*/React.createElement("circle", {
+    cx: size / 2,
+    cy: size / 2,
+    r: r,
+    fill: "none",
+    stroke: `url(#${gid})`,
+    strokeWidth: "6.5",
+    strokeDasharray: circ,
+    strokeDashoffset: circ * (1 - Math.min(animVal / target, 1)),
+    strokeLinecap: "round",
+    style: {
+      filter: `drop-shadow(0 0 5px ${ringCol}66)`,
+      transition: "stroke-dashoffset 0.1s"
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "absolute",
+      inset: 0,
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      pointerEvents: "none"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: size > 85 ? "18px" : "15px",
+      fontWeight: "800",
+      color: ringCol,
+      fontFamily: FONT_MONO,
+      lineHeight: 1,
+      letterSpacing: "-0.02em"
+    }
+  }, Math.round(animVal)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: "8px",
+      color: C.dim,
+      marginTop: "2px"
+    }
+  }, "/ ", target, unit))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: "9px",
+      color: C.dim,
+      marginTop: "7px",
+      textTransform: "uppercase",
+      letterSpacing: "0.1em",
+      fontWeight: "600"
+    }
+  }, label));
+}
+// Linjegraf med gradient-fyll under kurven
+function LineGraph({
+  data,
+  color,
+  targetData
+}) {
+  const W = 320,
+    H = 160,
+    pad = 30;
+  const allY = [...data.map(d => d.y), ...(targetData || []).map(d => d.y)];
+  let min = Math.min(...allY),
+    max = Math.max(...allY);
+  const range = max - min || 1;
+  min -= range * 0.18;
+  max += range * 0.18;
+  const span = max - min || 1;
+  const n = data.length;
+  const px = i => pad + (n <= 1 ? 0.5 : i / (n - 1)) * (W - pad * 2);
+  const py = v => H - pad - (v - min) / span * (H - pad * 2);
+  const path = data.map((d, i) => `${i === 0 ? "M" : "L"} ${px(i).toFixed(1)} ${py(d.y).toFixed(1)}`).join(" ");
+  const area = path + ` L ${px(n - 1).toFixed(1)} ${H - pad} L ${px(0).toFixed(1)} ${H - pad} Z`;
+  const tpath = targetData ? targetData.map((d, i) => `${i === 0 ? "M" : "L"} ${px(i).toFixed(1)} ${py(d.y).toFixed(1)}`).join(" ") : null;
+  const fid = "fill" + color.replace("#", "");
+  return /*#__PURE__*/React.createElement("svg", {
+    viewBox: `0 0 ${W} ${H}`,
+    style: {
+      width: "100%",
+      height: "auto"
+    }
+  }, /*#__PURE__*/React.createElement("defs", null, /*#__PURE__*/React.createElement("linearGradient", {
+    id: fid,
+    x1: "0",
+    y1: "0",
+    x2: "0",
+    y2: "1"
+  }, /*#__PURE__*/React.createElement("stop", {
+    offset: "0%",
+    stopColor: color,
+    stopOpacity: "0.28"
+  }), /*#__PURE__*/React.createElement("stop", {
+    offset: "100%",
+    stopColor: color,
+    stopOpacity: "0"
+  }))), [0, 0.5, 1].map(f => {
+    const v = max - f * span,
+      y = pad + f * (H - pad * 2);
+    return /*#__PURE__*/React.createElement("g", {
+      key: f
+    }, /*#__PURE__*/React.createElement("line", {
+      x1: pad,
+      y1: y,
+      x2: W - pad,
+      y2: y,
+      stroke: C.faint,
+      strokeWidth: "1"
+    }), /*#__PURE__*/React.createElement("text", {
+      x: 4,
+      y: y + 3,
+      fill: C.dim,
+      fontSize: "8",
+      fontFamily: FONT_MONO
+    }, v.toFixed(1)));
+  }), /*#__PURE__*/React.createElement("path", {
+    d: area,
+    fill: `url(#${fid})`
+  }), tpath && /*#__PURE__*/React.createElement("path", {
+    d: tpath,
+    fill: "none",
+    stroke: C.amber,
+    strokeWidth: "1.5",
+    strokeDasharray: "4 3",
+    opacity: "0.55"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: path,
+    fill: "none",
+    stroke: color,
+    strokeWidth: "2.5",
+    strokeLinejoin: "round",
+    strokeLinecap: "round",
+    style: {
+      filter: `drop-shadow(0 2px 4px ${color}44)`
+    }
+  }), data.map((d, i) => /*#__PURE__*/React.createElement("circle", {
+    key: i,
+    cx: px(i),
+    cy: py(d.y),
+    r: i === n - 1 ? "4" : "2.5",
+    fill: i === n - 1 ? color : C.bg,
+    stroke: color,
+    strokeWidth: i === n - 1 ? "0" : "2"
+  })));
+}
+function MiniBar({
+  data,
+  color
+}) {
+  const max = Math.max(...data),
+    min = Math.min(...data) * 0.9;
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: "3px",
+      alignItems: "flex-end",
+      height: "44px"
+    }
+  }, data.slice(-14).map((v, i, arr) => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    style: {
+      flex: 1,
+      background: `linear-gradient(to top, ${color}, ${color}aa)`,
+      borderRadius: "3px 3px 0 0",
+      height: `${(v - min) / (max - min || 1) * 100}%`,
+      minHeight: "4px",
+      opacity: 0.45 + 0.55 * (i / arr.length),
+      boxShadow: i === arr.length - 1 ? `0 0 8px ${color}66` : "none"
+    }
+  })));
+}
+// Liten fremdrifts-linje
+function ProgressBar({
+  pct,
+  col,
+  height = 6
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      height,
+      background: C.faint,
+      borderRadius: height,
+      overflow: "hidden"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      height: "100%",
+      width: `${Math.min(pct, 100)}%`,
+      background: `linear-gradient(90deg, ${col}cc, ${col})`,
+      borderRadius: height,
+      boxShadow: `0 0 8px ${col}66`,
+      transition: "width 0.6s cubic-bezier(.22,1,.36,1)"
+    }
+  }));
+}
+
+// ════════════════════════════════════════════
+function App() {
+  const [tab, setTab] = useState("today");
+  const [moreView, setMoreView] = useState(null); // photo|sleep|water within "more"
+
+  const [weightLog, setWeightLog] = useState(() => load("pt_weight", []));
+  const [liftLog, setLiftLog] = useState(() => load("pt_lift", []));
+  const [sessionLog, setSessionLog] = useState(() => load("pt_sessions", {}));
+  const [foodLog, setFoodLog] = useState(() => load("pt_food", {}));
+  const [chat, setChat] = useState(() => load("pt_chat", []));
+  const [photos, setPhotos] = useState(() => load("pt_photos", []));
+  const [sleepLog, setSleepLog] = useState(() => load("pt_sleep", {}));
+  const [waterLog, setWaterLog] = useState(() => load("pt_water", {}));
+  const [apiKey, setApiKey] = useState(() => load("pt_apikey", ""));
+  const [useAI, setUseAI] = useState(() => load("pt_useai", false));
+  const [prCelebr, setPrCelebr] = useState(null);
+  const [wInput, setWInput] = useState("");
+  const [liftName, setLiftName] = useState(EXERCISES[0]);
+  const [liftKg, setLiftKg] = useState("");
+  const [liftReps, setLiftReps] = useState("");
+  const [chatInput, setChatInput] = useState("");
+  const [aiThinking, setAiThinking] = useState(false);
+  const [aiError, setAiError] = useState("");
+  const [showSettings, setShowSettings] = useState(false);
+  const [keyDraft, setKeyDraft] = useState("");
+  const [fKcal, setFKcal] = useState("");
+  const [fP, setFP] = useState("");
+  const [fC, setFC] = useState("");
+  const [fF, setFF] = useState("");
+  const [runLog, setRunLog] = useState(() => load("pt_runs", []));
+  const [runMin, setRunMin] = useState("");
+  const [runSec, setRunSec] = useState("");
+  const [measureLog, setMeasureLog] = useState(() => load("pt_measure", [])); // [{date,waist,arm,chest,thigh}]
+  const [mWaist, setMWaist] = useState("");
+  const [mArm, setMArm] = useState("");
+  const [mChest, setMChest] = useState("");
+  const [mThigh, setMThigh] = useState("");
+  const [recoveryLog, setRecoveryLog] = useState(() => load("pt_recovery", {})); // {date:{sleepQ,soreness,energy}}
+  const [notesLog, setNotesLog] = useState(() => load("pt_notes", {})); // {date:text}
+  const [noteDraft, setNoteDraft] = useState("");
+  const [sleepHrs, setSleepHrs] = useState("");
+  const [sleepScore, setSleepScore] = useState("");
+  const [techOpen, setTechOpen] = useState(null);
+  const [rmKg, setRmKg] = useState("");
+  const [rmReps, setRmReps] = useState("");
+  const [rmGoal, setRmGoal] = useState("");
+  const [mealCat, setMealCat] = useState("Alle");
+  const chatEnd = useRef(null);
+  const photoInput = useRef(null);
+  const importInput = useRef(null);
+  const ds = todayStr();
+  const phase = phaseForDate(ds);
+  const split = SPLITS[phase.key];
+  const tIdx = dayIdxMon0();
+  const today = split.days[tIdx];
+  const tomorrow = split.days[(tIdx + 1) % 7];
+  const bw = weightLog.length ? weightLog[weightLog.length - 1].kg : 70;
+  const tgtW = targetWeightForDate(ds);
+  const macros = dailyTarget(phase.key, bw, today);
+  useEffect(() => save("pt_weight", weightLog), [weightLog]);
+  useEffect(() => save("pt_lift", liftLog), [liftLog]);
+  useEffect(() => save("pt_sessions", sessionLog), [sessionLog]);
+  useEffect(() => save("pt_food", foodLog), [foodLog]);
+  useEffect(() => save("pt_chat", chat), [chat]);
+  useEffect(() => save("pt_photos", photos), [photos]);
+  useEffect(() => save("pt_sleep", sleepLog), [sleepLog]);
+  useEffect(() => save("pt_water", waterLog), [waterLog]);
+  useEffect(() => save("pt_runs", runLog), [runLog]);
+  useEffect(() => save("pt_measure", measureLog), [measureLog]);
+  useEffect(() => save("pt_recovery", recoveryLog), [recoveryLog]);
+  useEffect(() => save("pt_notes", notesLog), [notesLog]);
+  useEffect(() => save("pt_apikey", apiKey), [apiKey]);
+  useEffect(() => save("pt_useai", useAI), [useAI]);
+  useEffect(() => {
+    chatEnd.current?.scrollIntoView({
+      behavior: "smooth"
+    });
+  }, [chat, tab, aiThinking]);
+  useEffect(() => {
+    setNoteDraft(notesLog[ds] || "");
+    const sv = sleepLog[ds];
+    setSleepHrs(sv != null ? String(sleepHours(sv)) : "");
+    setSleepScore(sleepScoreVal(sv) != null ? String(sleepScoreVal(sv)) : "");
+  }, [ds]);
+
+  // streak: sammenhengende dager med logget økt
+  function calcStreak() {
+    let streak = 0;
+    for (let i = 0; i < 60; i++) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const di = d.getDay() === 0 ? 6 : d.getDay() - 1;
+      const wk = weekNumberSince(d);
+      if (sessionLog[`${wk}-${di}`]) streak++;else if (i > 0) break;
+    }
+    return streak;
+  }
+  function weekNumberSince(d) {
+    const start = new Date("2026-06-22");
+    return Math.floor((d - start) / (7 * 864e5)) + 1;
+  }
+  const curWeek = weekNumberSince(new Date());
+  function logWeight() {
+    const kg = parseFloat(wInput.replace(",", "."));
+    if (!kg || kg < 40 || kg > 200) return;
+    setWeightLog(prev => [...prev.filter(e => e.date !== ds), {
+      date: ds,
+      kg
+    }].sort((a, b) => a.date < b.date ? -1 : 1));
+    setWInput("");
+  }
+  function logLift() {
+    const kg = parseFloat(liftKg.replace(",", "."));
+    const reps = parseInt(liftReps);
+    if (!kg || !reps) return;
+    const prev = liftLog.filter(l => l.lift === liftName);
+    const prevBest = prev.length ? Math.max(...prev.map(p => p.kg)) : 0;
+    setLiftLog(p => [...p, {
+      date: ds,
+      lift: liftName,
+      kg,
+      reps
+    }]);
+    if (kg > prevBest && prevBest > 0) {
+      setPrCelebr({
+        lift: liftName,
+        kg
+      });
+      setTimeout(() => setPrCelebr(null), 3500);
+    }
+    setLiftKg("");
+    setLiftReps("");
+  }
+  function toggleSession(idx) {
+    const k = `${curWeek}-${idx}`;
+    setSessionLog(p => ({
+      ...p,
+      [k]: !p[k]
+    }));
+  }
+  function addFood() {
+    let kcal = parseFloat(fKcal.replace(",", ".")) || 0;
+    const p = parseFloat(fP.replace(",", ".")) || 0,
+      c = parseFloat(fC.replace(",", ".")) || 0,
+      f = parseFloat(fF.replace(",", ".")) || 0;
+    if (kcal === 0 && (p > 0 || c > 0 || f > 0)) kcal = Math.round(p * 4 + c * 4 + f * 9);
+    if (kcal === 0 && p === 0) return;
+    setFoodLog(prev => ({
+      ...prev,
+      [ds]: {
+        kcal,
+        p,
+        c,
+        f
+      }
+    }));
+    setFKcal("");
+    setFP("");
+    setFC("");
+    setFF("");
+  }
+  function addPhoto(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      setPhotos(prev => [{
+        date: ds,
+        img: reader.result,
+        w: bw
+      }, ...prev].slice(0, 60));
+    };
+    reader.readAsDataURL(file);
+  }
+  function logSleep() {
+    const hrs = parseFloat(sleepHrs.replace(",", "."));
+    const score = parseInt(sleepScore) || null;
+    if (!hrs || hrs < 0 || hrs > 14) return;
+    setSleepLog(prev => ({
+      ...prev,
+      [ds]: {
+        hrs,
+        score
+      }
+    }));
+    setSleepHrs("");
+    setSleepScore("");
+  }
+  function addWater() {
+    setWaterLog(prev => ({
+      ...prev,
+      [ds]: (prev[ds] || 0) + 1
+    }));
+  }
+  function resetWater() {
+    setWaterLog(prev => {
+      const n = {
+        ...prev
+      };
+      delete n[ds];
+      return n;
+    });
+  }
+  function exportData() {
+    const backup = {
+      _app: "min-coach",
+      _version: 1,
+      _exported: new Date().toISOString(),
+      weight: weightLog,
+      lift: liftLog,
+      sessions: sessionLog,
+      food: foodLog,
+      runs: runLog,
+      photos,
+      sleep: sleepLog,
+      water: waterLog,
+      chat,
+      measure: measureLog,
+      recovery: recoveryLog,
+      notes: notesLog
+    };
+    const blob = new Blob([JSON.stringify(backup, null, 2)], {
+      type: "application/json"
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `min-coach-backup-${todayStr()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+  function importData(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const d = JSON.parse(reader.result);
+        if (d._app !== "min-coach") {
+          alert("Dette ser ikke ut som en gyldig backup-fil.");
+          return;
+        }
+        if (!confirm("Importere backup? Dette erstatter alle data som ligger i appen nå.")) return;
+        if (d.weight) setWeightLog(d.weight);
+        if (d.lift) setLiftLog(d.lift);
+        if (d.sessions) setSessionLog(d.sessions);
+        if (d.food) setFoodLog(d.food);
+        if (d.runs) setRunLog(d.runs);
+        if (d.photos) setPhotos(d.photos);
+        if (d.sleep) setSleepLog(d.sleep);
+        if (d.water) setWaterLog(d.water);
+        if (d.chat) setChat(d.chat);
+        if (d.measure) setMeasureLog(d.measure);
+        if (d.recovery) setRecoveryLog(d.recovery);
+        if (d.notes) setNotesLog(d.notes);
+        alert("✓ Backup importert! Alle dataene dine er tilbake.");
+        setShowSettings(false);
+      } catch (err) {
+        alert("Kunne ikke lese fila. Er den en ekte backup-fil?");
+      }
+    };
+    reader.readAsText(file);
+  }
+  function logRun() {
+    const min = parseInt(runMin) || 0,
+      sec = parseInt(runSec) || 0;
+    const total = min * 60 + sec;
+    if (total < 600 || total > 3600) return; // 10–60 min sanity
+    const prevBest = runLog.length ? Math.min(...runLog.map(r => r.sec)) : Infinity;
+    setRunLog(prev => [...prev, {
+      date: ds,
+      sec: total
+    }].sort((a, b) => a.date < b.date ? -1 : 1));
+    if (total < prevBest && prevBest !== Infinity) {
+      setPrCelebr({
+        lift: "5K-tid",
+        kg: fmtTime(total)
+      });
+      setTimeout(() => setPrCelebr(null), 3500);
+    }
+    setRunMin("");
+    setRunSec("");
+  }
+  function logMeasure() {
+    const waist = parseFloat(mWaist.replace(",", ".")) || null,
+      arm = parseFloat(mArm.replace(",", ".")) || null;
+    const chest = parseFloat(mChest.replace(",", ".")) || null,
+      thigh = parseFloat(mThigh.replace(",", ".")) || null;
+    if (!waist && !arm && !chest && !thigh) return;
+    setMeasureLog(prev => [...prev.filter(e => e.date !== ds), {
+      date: ds,
+      waist,
+      arm,
+      chest,
+      thigh
+    }].sort((a, b) => a.date < b.date ? -1 : 1));
+    setMWaist("");
+    setMArm("");
+    setMChest("");
+    setMThigh("");
+  }
+  function setRecovery(field, val) {
+    setRecoveryLog(prev => ({
+      ...prev,
+      [ds]: {
+        ...(prev[ds] || {}),
+        [field]: val
+      }
+    }));
+  }
+  function saveNote() {
+    setNotesLog(prev => ({
+      ...prev,
+      [ds]: noteDraft
+    }));
+  }
+  async function sendChat() {
+    const text = chatInput.trim();
+    if (!text || aiThinking) return;
+    setChatInput("");
+    setAiError("");
+    setChat(prev => [...prev, {
+      role: "user",
+      text
+    }]);
+    if (useAI && apiKey) {
+      setAiThinking(true);
+      try {
+        const reply = await askAI(text, apiKey, {
+          phase,
+          today,
+          bw,
+          tgtW
+        }, chat);
+        setChat(prev => [...prev, {
+          role: "assistant",
+          body: [reply],
+          tone: phase.accent,
+          ai: true
+        }]);
+      } catch (err) {
+        setAiError(err.message || "Kunne ikke nå AI");
+        const r = coachReply(text, {
+          phase,
+          today,
+          tomorrow,
+          bw,
+          tgtW
+        });
+        setChat(prev => [...prev, {
+          role: "coach",
+          title: r.title,
+          body: r.body,
+          tone: r.tone
+        }]);
+      } finally {
+        setAiThinking(false);
+      }
+    } else {
+      const r = coachReply(text, {
+        phase,
+        today,
+        tomorrow,
+        bw,
+        tgtW
+      });
+      setChat(prev => [...prev, {
+        role: "coach",
+        title: r.title,
+        body: r.body,
+        tone: r.tone
+      }]);
+    }
+  }
+  const weightDelta = +(bw - tgtW).toFixed(1);
+  const doneWk = split.days.filter((_, i) => sessionLog[`${curWeek}-${i}`]).length;
+  const td = foodLog[ds] || {
+    kcal: 0,
+    p: 0,
+    c: 0,
+    f: 0
+  };
+  const water = waterLog[ds] || 0;
+  const streak = calcStreak();
+  const tabs = [["today", "I dag"], ["plan", "Trening"], ["food", "Mat"], ["lifts", "Løft"], ["coach", "Coach"], ["more", "Mer"]];
+  const dayNames = ["Mandag", "Tirsdag", "Onsdag", "Torsdag", "Fredag", "Lørdag", "Søndag"];
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      minHeight: "100vh",
+      background: `radial-gradient(ellipse 90% 50% at 50% 0%, ${C.bg2} 0%, ${C.bg} 55%)`,
+      color: C.ink,
+      display: "flex",
+      flexDirection: "column",
+      paddingTop: "env(safe-area-inset-top)"
+    }
+  }, prCelebr && /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "fixed",
+      top: "calc(env(safe-area-inset-top) + 72px)",
+      left: "50%",
+      transform: "translateX(-50%)",
+      zIndex: 60,
+      background: `linear-gradient(135deg,${C.amber},${C.orange})`,
+      color: "#0a0a0a",
+      padding: "15px 26px",
+      borderRadius: "16px",
+      fontWeight: "800",
+      fontSize: "14px",
+      fontFamily: FONT_DISPLAY,
+      boxShadow: `0 12px 44px -8px ${C.amber}, 0 0 0 1px ${C.amber}55`,
+      animation: "pop 0.45s cubic-bezier(.34,1.56,.64,1)",
+      textAlign: "center",
+      minWidth: "190px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: "11px",
+      letterSpacing: "0.15em",
+      textTransform: "uppercase",
+      opacity: 0.75
+    }
+  }, "🎉 Ny personlig rekord"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: "3px"
+    }
+  }, prCelebr.lift), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: "24px",
+      fontFamily: FONT_MONO,
+      marginTop: "2px"
+    }
+  }, prCelebr.kg, typeof prCelebr.kg === "number" ? " kg" : "")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "sticky",
+      top: 0,
+      zIndex: 20,
+      background: `linear-gradient(180deg, ${C.bg2}f5 0%, ${C.bg2}d8 100%)`,
+      backdropFilter: "blur(16px)",
+      WebkitBackdropFilter: "blur(16px)",
+      borderBottom: `1px solid ${C.line}`,
+      padding: "15px 17px 13px",
+      flexShrink: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      maxWidth: "680px",
+      margin: "0 auto"
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: "8.5px",
+      letterSpacing: "0.32em",
+      color: C.dim,
+      textTransform: "uppercase",
+      fontWeight: "600"
+    }
+  }, "Din personlige coach"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: "22px",
+      fontWeight: "800",
+      letterSpacing: "-0.03em",
+      marginTop: "3px",
+      fontFamily: FONT_DISPLAY,
+      display: "flex",
+      alignItems: "center",
+      gap: "9px"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      background: `linear-gradient(120deg, ${C.ink}, ${phase.accent})`,
+      WebkitBackgroundClip: "text",
+      WebkitTextFillColor: "transparent",
+      backgroundClip: "text"
+    }
+  }, phase.name), streak > 1 && /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: "12px",
+      color: C.orange,
+      fontFamily: FONT_MONO,
+      fontWeight: "800",
+      display: "inline-flex",
+      alignItems: "center",
+      gap: "2px",
+      background: `${C.orange}18`,
+      padding: "2px 8px",
+      borderRadius: "10px",
+      border: `1px solid ${C.orange}33`
+    }
+  }, "🔥", streak))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: "9px",
+      alignItems: "center"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: `linear-gradient(160deg, ${phase.accent}22, ${phase.accent}0d)`,
+      border: `1px solid ${phase.accent}44`,
+      borderRadius: "14px",
+      padding: "6px 13px",
+      textAlign: "center",
+      boxShadow: `0 0 16px -6px ${phase.accent}66`
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: "8px",
+      color: C.dim,
+      textTransform: "uppercase",
+      letterSpacing: "0.12em",
+      fontWeight: "600"
+    }
+  }, "Mål"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: "13px",
+      fontWeight: "800",
+      color: phase.accent,
+      fontFamily: FONT_MONO
+    }
+  }, tgtW, "kg")), /*#__PURE__*/React.createElement("button", {
+    className: "ptbtn",
+    onClick: () => {
+      setShowSettings(true);
+      setKeyDraft(apiKey);
+    },
+    style: {
+      background: C.panel2,
+      border: `1px solid ${C.line}`,
+      borderRadius: "50%",
+      width: "40px",
+      height: "40px",
+      cursor: "pointer",
+      fontSize: "16px",
+      color: C.dim
+    }
+  }, "⚙️")))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      overflowY: "auto",
+      maxWidth: "680px",
+      width: "100%",
+      margin: "0 auto",
+      padding: "16px 15px 110px"
+    }
+  }, tab === "today" && (() => {
+    const col = typeColor[today.type],
+      done = sessionLog[`${curWeek}-${tIdx}`];
+    const hour = new Date().getHours();
+    const greeting = hour < 10 ? "God morgen" : hour < 17 ? "God dag" : "God kveld";
+    const recPct = Math.round(doneWk / 7 * 100);
+    return /*#__PURE__*/React.createElement("div", {
+      className: "stagger",
+      style: {
+        animation: "fadein 0.3s ease"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        position: "relative",
+        borderRadius: "22px",
+        overflow: "hidden",
+        marginBottom: "13px",
+        background: `linear-gradient(150deg, ${phase.accent}1f 0%, ${C.panel2} 42%, ${C.panel} 100%)`,
+        border: `1px solid ${phase.accent}33`,
+        padding: "20px 18px",
+        boxShadow: `0 16px 40px -20px ${phase.accent}55, 0 1px 0 rgba(255,255,255,0.04) inset`
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        position: "absolute",
+        top: "-40px",
+        right: "-30px",
+        width: "160px",
+        height: "160px",
+        borderRadius: "50%",
+        background: `radial-gradient(circle, ${phase.accent}22, transparent 70%)`,
+        pointerEvents: "none"
+      }
+    }), /*#__PURE__*/React.createElement("div", {
+      style: {
+        position: "relative"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: "10px",
+        color: C.ink2,
+        letterSpacing: "0.04em",
+        fontWeight: "500"
+      }
+    }, greeting, " · ", new Date().toLocaleDateString("no-NO", {
+      weekday: "long",
+      day: "numeric",
+      month: "long"
+    })), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: "26px",
+        fontWeight: "800",
+        fontFamily: FONT_DISPLAY,
+        letterSpacing: "-0.03em",
+        marginTop: "4px",
+        lineHeight: 1.1
+      }
+    }, "Klar for ", /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: phase.accent
+      }
+    }, today.focus.toLowerCase()), "?"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: "18px",
+        marginTop: "16px"
+      }
+    }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: "19px",
+        fontWeight: "800",
+        fontFamily: FONT_MONO,
+        color: C.ink
+      }
+    }, bw, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: "10px",
+        color: C.dim
+      }
+    }, "kg")), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: "8px",
+        color: C.dim,
+        textTransform: "uppercase",
+        letterSpacing: "0.1em",
+        fontWeight: "600",
+        marginTop: "2px"
+      }
+    }, "Vekt")), /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: "1px",
+        background: C.line
+      }
+    }), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: "19px",
+        fontWeight: "800",
+        fontFamily: FONT_MONO,
+        color: phase.accent
+      }
+    }, doneWk, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: "10px",
+        color: C.dim
+      }
+    }, "/7")), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: "8px",
+        color: C.dim,
+        textTransform: "uppercase",
+        letterSpacing: "0.1em",
+        fontWeight: "600",
+        marginTop: "2px"
+      }
+    }, "Uke")), /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: "1px",
+        background: C.line
+      }
+    }), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: "19px",
+        fontWeight: "800",
+        fontFamily: FONT_MONO,
+        color: C.orange
+      }
+    }, streak, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: "10px",
+        color: C.dim
+      }
+    }, "d")), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: "8px",
+        color: C.dim,
+        textTransform: "uppercase",
+        letterSpacing: "0.1em",
+        fontWeight: "600",
+        marginTop: "2px"
+      }
+    }, "Streak")), /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1
+      }
+    })), /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginTop: "14px"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        justifyContent: "space-between",
+        marginBottom: "5px"
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: "9px",
+        color: C.dim,
+        textTransform: "uppercase",
+        letterSpacing: "0.1em",
+        fontWeight: "600"
+      }
+    }, "Ukens fremdrift"), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: "9px",
+        color: phase.accent,
+        fontFamily: FONT_MONO,
+        fontWeight: "700"
+      }
+    }, recPct, "%")), /*#__PURE__*/React.createElement(ProgressBar, {
+      pct: recPct,
+      col: phase.accent
+    })))), (() => {
+      const dGoal = daysUntil(GOAL_DATE);
+      const startW = 70.0, goalW = 55.0;
+      const lost = +(startW - bw).toFixed(1);
+      const toGo = +(bw - goalW).toFixed(1);
+      const fmtD = d => d < 0 ? "nådd!" : d === 0 ? "i dag!" : d === 1 ? "i morgen" : `${d} dager`;
+      return /*#__PURE__*/React.createElement("div", {
+        style: { display: "flex", gap: "10px", marginBottom: "13px" }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: { flex: 1, background: `linear-gradient(160deg, ${C.pink}18, ${C.panel})`, border: `1px solid ${C.pink}33`, borderRadius: "16px", padding: "13px", textAlign: "center", boxShadow: `0 8px 20px -14px ${C.pink}88` }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: { fontSize: "9px", color: C.dim, textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: "600" }
+      }, "⬇️ Ned så langt"), /*#__PURE__*/React.createElement("div", {
+        style: { fontSize: "17px", fontWeight: "800", color: C.pink, marginTop: "3px", fontFamily: FONT_DISPLAY }
+      }, `${lost > 0 ? lost : 0} kg`), /*#__PURE__*/React.createElement("div", {
+        style: { fontSize: "9px", color: C.dim }
+      }, `${toGo > 0 ? toGo + " kg igjen" : "mål nådd!"}`)), /*#__PURE__*/React.createElement("div", {
+        style: { flex: 1, background: `linear-gradient(160deg, ${C.teal}18, ${C.panel})`, border: `1px solid ${C.teal}33`, borderRadius: "16px", padding: "13px", textAlign: "center", boxShadow: `0 8px 20px -14px ${C.teal}88` }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: { fontSize: "9px", color: C.dim, textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: "600" }
+      }, "🎯 Mål: 55 kg"), /*#__PURE__*/React.createElement("div", {
+        style: { fontSize: "17px", fontWeight: "800", color: C.teal, marginTop: "3px", fontFamily: FONT_DISPLAY }
+      }, fmtD(dGoal)), /*#__PURE__*/React.createElement("div", {
+        style: { fontSize: "9px", color: C.dim }
+      }, "i sikte 💪")));
+    })(), /*#__PURE__*/React.createElement("div", {
+      style: {
+        position: "relative",
+        background: `linear-gradient(140deg, ${col}1c 0%, ${C.panel2} 45%, ${C.panel} 100%)`,
+        border: `1px solid ${col}3a`,
+        borderRadius: "20px",
+        padding: "20px",
+        marginBottom: "13px",
+        overflow: "hidden",
+        boxShadow: `0 12px 32px -18px ${col}aa`
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        position: "absolute",
+        bottom: "-30px",
+        right: "-20px",
+        fontSize: "110px",
+        opacity: 0.06,
+        transform: "rotate(-12deg)",
+        pointerEvents: "none"
+      }
+    }, typeIcon[today.type]), /*#__PURE__*/React.createElement("div", {
+      style: {
+        position: "relative"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: "8px"
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: "9.5px",
+        color: col,
+        textTransform: "uppercase",
+        letterSpacing: "0.2em",
+        fontWeight: "700",
+        background: `${col}1a`,
+        padding: "4px 10px",
+        borderRadius: "8px",
+        border: `1px solid ${col}33`
+      }
+    }, dayNames[tIdx], " · dagens økt"), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: "30px"
+      }
+    }, typeIcon[today.type])), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: "25px",
+        fontWeight: "800",
+        marginBottom: "9px",
+        letterSpacing: "-0.03em",
+        fontFamily: FONT_DISPLAY
+      }
+    }, today.focus), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: "14px",
+        color: C.ink2,
+        lineHeight: 1.65,
+        marginBottom: "17px"
+      }
+    }, today.desc), /*#__PURE__*/React.createElement("button", {
+      className: "ptbtn",
+      onClick: () => toggleSession(tIdx),
+      style: {
+        width: "100%",
+        padding: "14px",
+        borderRadius: "14px",
+        cursor: "pointer",
+        border: done ? `1px solid ${C.green}55` : "none",
+        fontWeight: "700",
+        fontSize: "14px",
+        fontFamily: FONT_DISPLAY,
+        background: done ? `${C.green}1e` : `linear-gradient(160deg, ${col}, ${col}d0)`,
+        color: done ? C.green : "#08090c",
+        boxShadow: done ? "none" : `0 6px 18px -6px ${col}aa`
+      }
+    }, done ? "✓ Fullført i dag" : "Marker som fullført"))), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "grid",
+        gridTemplateColumns: "1fr 1fr 1fr",
+        gap: "8px",
+        marginBottom: "12px"
+      }
+    }, /*#__PURE__*/React.createElement(StatCard, {
+      label: "Din vekt",
+      value: bw,
+      unit: "kg",
+      col: C.green
+    }), /*#__PURE__*/React.createElement(StatCard, {
+      label: "På skjema",
+      value: tgtW,
+      unit: "kg",
+      col: C.amber
+    }), /*#__PURE__*/React.createElement(StatCard, {
+      label: "Økter uke",
+      value: `${doneWk}/7`,
+      unit: "",
+      col: phase.accent
+    })), /*#__PURE__*/React.createElement("div", {
+      style: {
+        background: macros.bonus && macros.bonus.kcal > 0 ? `linear-gradient(135deg, ${phase.accent}18, ${C.panel})` : `linear-gradient(135deg, ${C.amber}14, ${C.panel})`,
+        border: `1px solid ${macros.bonus && macros.bonus.kcal > 0 ? phase.accent + "44" : C.amber + "33"}`,
+        borderRadius: "14px",
+        padding: "16px",
+        marginBottom: "12px"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: { fontSize: "10px", color: C.dim, textTransform: "uppercase", letterSpacing: "0.15em", fontWeight: "600", marginBottom: "6px" }
+    }, "🍽️ Spis i dag"), /*#__PURE__*/React.createElement("div", {
+      style: { display: "flex", alignItems: "baseline", gap: "8px" }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: { fontSize: "32px", fontWeight: "800", color: phase.accent, fontFamily: FONT_MONO, letterSpacing: "-0.02em" }
+    }, macros.kcal), /*#__PURE__*/React.createElement("span", {
+      style: { fontSize: "13px", color: C.dim }
+    }, "kcal")), /*#__PURE__*/React.createElement("div", {
+      style: { fontSize: "12px", color: C.ink2, marginTop: "6px", lineHeight: 1.5 }
+    }, `${macros.p}g protein · ${macros.c}g karbo · ${macros.f}g fett`), macros.bonus && macros.bonus.kcal > 0 ? /*#__PURE__*/React.createElement("div", {
+      style: { fontSize: "12px", color: phase.accent, marginTop: "8px", fontWeight: "600", background: `${phase.accent}12`, padding: "7px 10px", borderRadius: "8px", display: "inline-block" }
+    }, `${macros.bonus.label} (+${macros.bonus.kcal} kcal)`) : /*#__PURE__*/React.createElement("div", {
+      style: { fontSize: "11px", color: C.dim, marginTop: "8px" }
+    }, "Ren styrkedag – grunnivå. Kondisdager får ekstra karbo automatisk.")), /*#__PURE__*/React.createElement("div", {
+      onClick: () => setTab("food"),
+      style: {
+        background: C.panel,
+        border: `1px solid ${C.line}`,
+        borderRadius: "12px",
+        padding: "14px",
+        marginBottom: "12px",
+        cursor: "pointer"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        justifyContent: "space-between",
+        marginBottom: "8px"
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: "11px",
+        color: C.dim,
+        textTransform: "uppercase",
+        letterSpacing: "0.15em"
+      }
+    }, "I dag spist"), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: "11px",
+        color: phase.accent
+      }
+    }, "Før mat →")), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        justifyContent: "space-around"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        textAlign: "center"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: "20px",
+        fontWeight: "800",
+        color: td.kcal > macros.kcal * 1.05 ? C.pink : C.amber,
+        fontFamily: "monospace"
+      }
+    }, Math.round(td.kcal)), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: "9px",
+        color: C.dim
+      }
+    }, "/ ", macros.kcal)), /*#__PURE__*/React.createElement("div", {
+      style: {
+        textAlign: "center"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: "15px",
+        fontWeight: "700",
+        color: C.green,
+        fontFamily: "monospace"
+      }
+    }, Math.round(td.p)), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: "9px",
+        color: C.dim
+      }
+    }, "/ ", macros.p, "g P")), /*#__PURE__*/React.createElement("div", {
+      style: {
+        textAlign: "center"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: "15px",
+        fontWeight: "700",
+        color: C.blue,
+        fontFamily: "monospace"
+      }
+    }, Math.round(td.c)), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: "9px",
+        color: C.dim
+      }
+    }, "/ ", macros.c, "g K")), /*#__PURE__*/React.createElement("div", {
+      style: {
+        textAlign: "center"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: "15px",
+        fontWeight: "700",
+        color: C.orange,
+        fontFamily: "monospace"
+      }
+    }, Math.round(td.f)), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: "9px",
+        color: C.dim
+      }
+    }, "/ ", macros.f, "g F")))), weightLog.length > 0 && /*#__PURE__*/React.createElement("div", {
+      style: {
+        background: C.panel,
+        border: `1px solid ${C.line}`,
+        borderRadius: "12px",
+        padding: "14px",
+        marginBottom: "12px"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: "11px",
+        color: C.dim,
+        marginBottom: "6px",
+        textTransform: "uppercase",
+        letterSpacing: "0.15em"
+      }
+    }, "Status mot skjema"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: "13px",
+        color: "#aeb6c5",
+        lineHeight: 1.6
+      }
+    }, Math.abs(weightDelta) <= 0.4 ? `Du ligger akkurat på skjema (${tgtW} kg). Perfekt – nedgangen går som den skal!` : weightDelta > 0.4 ? `Du ligger ${weightDelta} kg over skjema. Helt greit – vekt svinger fra dag til dag (vann, mat, hormoner). Hold planen, så kommer det.` : `Du ligger ${Math.abs(weightDelta)} kg under skjema. Flott fremgang! Pass på at du spiser nok protein og ikke går for fort ned.`)), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: "8px",
+        marginBottom: "12px"
+      }
+    }, /*#__PURE__*/React.createElement("button", {
+      className: "ptbtn",
+      onClick: addWater,
+      style: {
+        flex: 1,
+        padding: "12px",
+        borderRadius: "12px",
+        border: `1px solid ${C.blue}40`,
+        background: `${C.blue}12`,
+        color: C.blue,
+        fontSize: "13px",
+        fontWeight: "600",
+        cursor: "pointer"
+      }
+    }, "💧 Vann: ", water, " glass"), /*#__PURE__*/React.createElement("button", {
+      className: "ptbtn",
+      onClick: () => setTab("coach"),
+      style: {
+        flex: 1,
+        padding: "12px",
+        borderRadius: "12px",
+        border: `1px dashed ${C.line}`,
+        background: C.panel,
+        color: C.ink,
+        fontSize: "13px",
+        cursor: "pointer"
+      }
+    }, "💬 Spør coachen")), (() => {
+      const rec = recoveryLog[ds] || {};
+      const complete = rec.sleepQ && rec.soreness && rec.energy;
+      const score = complete ? rec.sleepQ + (4 - rec.soreness) + rec.energy : 0; // høyere = bedre
+      let verdict = "";
+      if (complete) {
+        if (score >= 8) verdict = "Kroppen er klar – kjør på med full innsats i dag! 💪";else if (score >= 5) verdict = "OK form. Tren som planlagt, men lytt underveis.";else verdict = "Kroppen ber om hvile. Vurder lett økt eller hviledag i dag.";
+      }
+      const opts = (field, labels, colorScale) => /*#__PURE__*/React.createElement("div", {
+        style: {
+          display: "flex",
+          gap: "5px"
+        }
+      }, labels.map((lab, i) => /*#__PURE__*/React.createElement("button", {
+        key: i,
+        className: "ptbtn",
+        onClick: () => setRecovery(field, i + 1),
+        style: {
+          flex: 1,
+          padding: "8px 4px",
+          borderRadius: "8px",
+          border: `1px solid ${rec[field] === i + 1 ? C.teal : C.line}`,
+          background: rec[field] === i + 1 ? `${C.teal}20` : C.bg,
+          color: rec[field] === i + 1 ? C.teal : C.dim,
+          fontSize: "10px",
+          fontWeight: "600",
+          cursor: "pointer"
+        }
+      }, lab)));
+      return /*#__PURE__*/React.createElement("div", {
+        style: {
+          background: C.panel,
+          border: `1px solid ${C.line}`,
+          borderRadius: "12px",
+          padding: "14px",
+          marginBottom: "12px"
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: "11px",
+          color: C.dim,
+          marginBottom: "10px",
+          textTransform: "uppercase",
+          letterSpacing: "0.15em"
+        }
+      }, "Morgensjekk – hvordan føles kroppen?"), /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: "10px",
+          color: C.dim,
+          marginBottom: "4px"
+        }
+      }, "Søvnkvalitet"), opts("sleepQ", ["Dårlig", "Ok", "God"]), /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: "10px",
+          color: C.dim,
+          margin: "8px 0 4px"
+        }
+      }, "Ømhet i kroppen"), opts("soreness", ["Ingen", "Litt", "Mye"]), /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: "10px",
+          color: C.dim,
+          margin: "8px 0 4px"
+        }
+      }, "Energinivå"), opts("energy", ["Lavt", "Ok", "Høyt"]), complete && /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: "12px",
+          color: score >= 8 ? C.green : score >= 5 ? C.amber : C.pink,
+          marginTop: "10px",
+          lineHeight: 1.5,
+          fontWeight: "600"
+        }
+      }, verdict));
+    })(), /*#__PURE__*/React.createElement("div", {
+      style: {
+        background: C.panel,
+        border: `1px solid ${C.line}`,
+        borderRadius: "12px",
+        padding: "14px",
+        marginBottom: "12px"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: "11px",
+        color: C.dim,
+        marginBottom: "8px",
+        textTransform: "uppercase",
+        letterSpacing: "0.15em"
+      }
+    }, "Dagens notat"), /*#__PURE__*/React.createElement("textarea", {
+      value: noteDraft,
+      onChange: e => setNoteDraft(e.target.value),
+      onBlur: saveNote,
+      placeholder: "Hvordan gikk økta? Vond skulder? Sov dårlig? Skriv fritt…",
+      style: {
+        width: "100%",
+        minHeight: "60px",
+        background: C.bg,
+        border: `1px solid ${C.line}`,
+        borderRadius: "10px",
+        padding: "11px 13px",
+        color: C.ink,
+        fontSize: "14px",
+        resize: "vertical",
+        fontFamily: "inherit"
+      }
+    }), notesLog[ds] && /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: "10px",
+        color: C.green,
+        marginTop: "6px"
+      }
+    }, "✓ Lagret")));
+  })(), tab === "plan" && /*#__PURE__*/React.createElement("div", {
+    style: {
+      animation: "slideup 0.3s ease"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: `${phase.accent}10`,
+      border: `1px solid ${phase.accent}30`,
+      borderRadius: "12px",
+      padding: "14px",
+      marginBottom: "12px",
+      fontSize: "13px",
+      color: "#aeb6c5",
+      lineHeight: 1.6
+    }
+  }, /*#__PURE__*/React.createElement("strong", {
+    style: {
+      color: phase.accent
+    }
+  }, phase.name, "."), " ", split.note), split.days.map((p, i) => {
+    const col = typeColor[p.type],
+      done = sessionLog[`${curWeek}-${i}`],
+      isToday = i === tIdx;
+    return /*#__PURE__*/React.createElement("div", {
+      key: i,
+      onClick: () => toggleSession(i),
+      style: {
+        background: isToday ? `${col}12` : C.panel,
+        border: `1px solid ${isToday ? col + "50" : C.line}`,
+        borderLeft: `3px solid ${col}`,
+        borderRadius: "10px",
+        padding: "12px 14px",
+        marginBottom: "6px",
+        cursor: "pointer",
+        display: "flex",
+        gap: "12px",
+        alignItems: "flex-start",
+        opacity: done ? 0.55 : 1
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: "20px",
+        flexShrink: 0
+      }
+    }, typeIcon[p.type]), /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: "8px"
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: "10px",
+        color: C.dim,
+        textTransform: "uppercase",
+        letterSpacing: "0.1em"
+      }
+    }, p.day), isToday && /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: "8px",
+        color: col,
+        background: `${col}20`,
+        borderRadius: "4px",
+        padding: "1px 6px",
+        fontWeight: "700"
+      }
+    }, "I DAG"), done && /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: "11px",
+        color: C.green
+      }
+    }, "✓")), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: "14px",
+        fontWeight: "700",
+        margin: "2px 0 3px"
+      }
+    }, p.focus), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: "11px",
+        color: C.dim,
+        lineHeight: 1.5
+      }
+    }, p.desc)));
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: "11px",
+      color: C.dim,
+      textAlign: "center",
+      marginTop: "10px",
+      lineHeight: 1.5
+    }
+  }, "Splitten endrer seg automatisk når du går fra rekomp → bulk → cut.")), tab === "food" && /*#__PURE__*/React.createElement("div", {
+    style: {
+      animation: "slideup 0.3s ease"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: C.panel,
+      border: `1px solid ${C.line}`,
+      borderRadius: "16px",
+      padding: "18px 12px",
+      marginBottom: "12px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: "11px",
+      color: C.dim,
+      textTransform: "uppercase",
+      letterSpacing: "0.15em",
+      marginBottom: "14px",
+      padding: "0 4px"
+    }
+  }, "I dag · ", phase.name), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-around",
+      flexWrap: "wrap",
+      gap: "4px"
+    }
+  }, /*#__PURE__*/React.createElement(Ring, {
+    value: td.kcal,
+    target: macros.kcal,
+    label: "kcal",
+    unit: "",
+    col: C.amber,
+    size: 92
+  }), /*#__PURE__*/React.createElement(Ring, {
+    value: td.p,
+    target: macros.p,
+    label: "protein",
+    unit: "g",
+    col: C.green
+  }), /*#__PURE__*/React.createElement(Ring, {
+    value: td.c,
+    target: macros.c,
+    label: "karbo",
+    unit: "g",
+    col: C.blue
+  }), /*#__PURE__*/React.createElement(Ring, {
+    value: td.f,
+    target: macros.f,
+    label: "fett",
+    unit: "g",
+    col: C.orange
+  }))), /*#__PURE__*/React.createElement(Section, {
+    title: "Før dagens totaler",
+    col: C.green
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: "11px",
+      color: C.dim,
+      marginBottom: "10px",
+      lineHeight: 1.5
+    }
+  }, "Du tracker detaljer i en annen app – skriv inn dagens sluttsum her."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: "8px",
+      marginBottom: "8px"
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    inputMode: "numeric",
+    value: fKcal,
+    onChange: e => setFKcal(e.target.value),
+    placeholder: `kcal (mål ${macros.kcal})`,
+    style: inputStyle
+  }), /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    inputMode: "numeric",
+    value: fP,
+    onChange: e => setFP(e.target.value),
+    placeholder: `protein (mål ${macros.p})`,
+    style: inputStyle
+  }), /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    inputMode: "numeric",
+    value: fC,
+    onChange: e => setFC(e.target.value),
+    placeholder: `karbo (mål ${macros.c})`,
+    style: inputStyle
+  }), /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    inputMode: "numeric",
+    value: fF,
+    onChange: e => setFF(e.target.value),
+    placeholder: `fett (mål ${macros.f})`,
+    style: inputStyle
+  })), /*#__PURE__*/React.createElement("button", {
+    className: "ptbtn",
+    onClick: addFood,
+    style: {
+      ...pillBtn(C.green),
+      width: "100%"
+    }
+  }, "Lagre dagens totaler"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: "10px",
+      color: C.dim,
+      marginTop: "8px"
+    }
+  }, "Tom kcal regnes ut fra makros (4/4/9).")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: `${phase.accent}10`,
+      border: `1px solid ${phase.accent}30`,
+      borderRadius: "12px",
+      padding: "14px",
+      marginBottom: "12px",
+      fontSize: "13px",
+      color: "#aeb6c5",
+      lineHeight: 1.6
+    }
+  }, td.kcal < macros.kcal ? `${Math.round(macros.kcal - td.kcal)} kcal igjen i dag. ${macros.p - td.p > 0 ? `Mangler ${Math.round(macros.p - td.p)}g protein.` : "Protein nådd!"}` : td.kcal > macros.kcal * 1.05 ? `${Math.round(td.kcal - macros.kcal)} kcal over målet. ${phase.key === "bulk" ? "Greit på bulk." : "Stram inn i morgen."}` : "Akkurat på kalorimålet i dag!"), /*#__PURE__*/React.createElement(Section, {
+    title: "Måltidstips for fasen",
+    col: C.violet
+  }, MEAL_TIPS[phase.key].map((m, i) => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    style: {
+      padding: "9px 0",
+      borderBottom: i < MEAL_TIPS[phase.key].length - 1 ? `1px solid ${C.faint}` : "none"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: "12px",
+      fontWeight: "700",
+      color: C.ink
+    }
+  }, m.t), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: "11px",
+      color: C.dim,
+      marginTop: "2px",
+      lineHeight: 1.5
+    }
+  }, m.tip)))), /*#__PURE__*/React.createElement(Section, {
+    title: "🍴 Måltidsbibliotek",
+    col: C.green
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: "11px",
+      color: C.dim,
+      marginBottom: "10px",
+      lineHeight: 1.5
+    }
+  }, "Proteinrike måltidsforslag. Trykk for å legge til i dagens totaler."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: "5px",
+      marginBottom: "10px",
+      flexWrap: "wrap"
+    }
+  }, ["Alle", "Frokost", "Lunsj", "Middag", "Snacks"].map(c => /*#__PURE__*/React.createElement("button", {
+    key: c,
+    className: "ptbtn",
+    onClick: () => setMealCat(c),
+    style: {
+      background: mealCat === c ? C.green : "transparent",
+      color: mealCat === c ? C.bg : C.dim,
+      border: `1px solid ${mealCat === c ? C.green : C.line}`,
+      borderRadius: "14px",
+      padding: "5px 12px",
+      fontSize: "11px",
+      fontWeight: mealCat === c ? "700" : "400",
+      cursor: "pointer"
+    }
+  }, c))), MEAL_LIBRARY.filter(m => mealCat === "Alle" || m.cat === mealCat).map((m, i) => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    style: {
+      background: C.bg,
+      border: `1px solid ${C.line}`,
+      borderRadius: "10px",
+      padding: "12px",
+      marginBottom: "6px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "flex-start",
+      gap: "10px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: "13px",
+      fontWeight: "700",
+      color: C.ink
+    }
+  }, m.name, " ", /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: "9px",
+      color: C.dim,
+      fontWeight: "400"
+    }
+  }, "· ", m.cat)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: "10px",
+      color: C.dim,
+      marginTop: "2px",
+      lineHeight: 1.4
+    }
+  }, m.items), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: "10px",
+      color: C.dim,
+      marginTop: "4px"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: C.amber
+    }
+  }, m.kcal, " kcal"), " · ", /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: C.green
+    }
+  }, m.p, "g P"), " · ", /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: C.blue
+    }
+  }, m.c, "g K"), " · ", /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: C.orange
+    }
+  }, m.f, "g F"))), /*#__PURE__*/React.createElement("button", {
+    className: "ptbtn",
+    onClick: () => {
+      setFoodLog(prev => {
+        const day = prev[ds] || {
+          kcal: 0,
+          p: 0,
+          c: 0,
+          f: 0
+        };
+        return {
+          ...prev,
+          [ds]: {
+            kcal: day.kcal + m.kcal,
+            p: day.p + m.p,
+            c: day.c + m.c,
+            f: day.f + m.f
+          }
+        };
+      });
+    },
+    style: {
+      background: `${C.green}20`,
+      border: `1px solid ${C.green}40`,
+      borderRadius: "8px",
+      padding: "8px 10px",
+      fontSize: "16px",
+      color: C.green,
+      cursor: "pointer",
+      flexShrink: 0,
+      lineHeight: 1
+    }
+  }, "+")))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: "10px",
+      color: C.dim,
+      marginTop: "8px",
+      lineHeight: 1.5
+    }
+  }, "Trykk + for å legge måltidet til dagens totaler. Tallene er omtrentlige – juster i din mat-app for nøyaktighet."))), tab === "lifts" && /*#__PURE__*/React.createElement("div", {
+    style: {
+      animation: "slideup 0.3s ease"
+    }
+  }, /*#__PURE__*/React.createElement(Section, {
+    title: "Logg løft",
+    col: C.amber
+  }, /*#__PURE__*/React.createElement("select", {
+    value: liftName,
+    onChange: e => setLiftName(e.target.value),
+    style: {
+      ...inputStyle,
+      marginBottom: "8px",
+      width: "100%"
+    }
+  }, EXERCISES.map(l => /*#__PURE__*/React.createElement("option", {
+    key: l,
+    value: l
+  }, l))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: "8px"
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    inputMode: "decimal",
+    value: liftKg,
+    onChange: e => setLiftKg(e.target.value),
+    placeholder: "Vekt (kg)",
+    style: inputStyle
+  }), /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    inputMode: "numeric",
+    value: liftReps,
+    onChange: e => setLiftReps(e.target.value),
+    placeholder: "Reps",
+    style: {
+      ...inputStyle,
+      maxWidth: "90px"
+    }
+  }), /*#__PURE__*/React.createElement("button", {
+    className: "ptbtn",
+    onClick: logLift,
+    style: pillBtn(C.amber)
+  }, "Lagre"))), liftLog.length < 1 ? /*#__PURE__*/React.createElement(Empty, {
+    text: "Logg løft for å se PR og fremgang per øvelse."
+  }) : EXERCISES.map(lift => {
+    const pts = liftLog.filter(l => l.lift === lift);
+    if (pts.length < 1) return null;
+    const best = Math.max(...pts.map(p => p.kg));
+    const gain = pts.length > 1 ? pts[pts.length - 1].kg - pts[0].kg : 0;
+    return /*#__PURE__*/React.createElement("div", {
+      key: lift,
+      style: {
+        background: C.panel,
+        border: `1px solid ${C.line}`,
+        borderRadius: "12px",
+        padding: "14px",
+        marginBottom: "8px"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        justifyContent: "space-between",
+        marginBottom: "8px",
+        alignItems: "baseline"
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: "13px",
+        fontWeight: "700"
+      }
+    }, lift), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: "12px",
+        color: C.amber,
+        fontFamily: "monospace"
+      }
+    }, "🏆 ", best, "kg ", pts.length > 1 && /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: gain >= 0 ? C.green : C.pink
+      }
+    }, "· ", gain >= 0 ? "+" : "", gain.toFixed(1)))), pts.length >= 2 ? /*#__PURE__*/React.createElement(MiniBar, {
+      data: pts.map(p => p.kg),
+      color: C.amber
+    }) : /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: "10px",
+        color: C.dim
+      }
+    }, "Logg flere ganger for graf"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: "10px",
+        color: C.dim,
+        marginTop: "6px"
+      }
+    }, "Siste: ", pts[pts.length - 1].kg, "kg × ", pts[pts.length - 1].reps, " (", pts[pts.length - 1].date.slice(5), ") · ", pts.length, " økter"));
+  }), /*#__PURE__*/React.createElement(Section, {
+    title: "📖 Teknikk – hovedløft",
+    col: C.blue
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: "11px",
+      color: C.dim,
+      marginBottom: "10px",
+      lineHeight: 1.5
+    }
+  }, "Trykk på en øvelse for korte teknikk-tips."), Object.keys(TECHNIQUE).map(name => {
+    const open = techOpen === name;
+    return /*#__PURE__*/React.createElement("div", {
+      key: name,
+      onClick: () => setTechOpen(open ? null : name),
+      style: {
+        background: open ? `${C.blue}10` : C.bg,
+        border: `1px solid ${open ? C.blue + "40" : C.line}`,
+        borderRadius: "10px",
+        marginBottom: "5px",
+        overflow: "hidden",
+        cursor: "pointer"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        padding: "11px 13px",
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center"
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: "13px",
+        fontWeight: "600",
+        color: open ? C.blue : C.ink
+      }
+    }, name), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: "11px",
+        color: C.dim
+      }
+    }, open ? "▲" : "▼")), open && /*#__PURE__*/React.createElement("div", {
+      style: {
+        padding: "0 13px 13px"
+      }
+    }, TECHNIQUE[name].map((cue, i) => /*#__PURE__*/React.createElement("div", {
+      key: i,
+      style: {
+        display: "flex",
+        gap: "8px",
+        padding: "4px 0",
+        alignItems: "flex-start"
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: C.blue,
+        fontSize: "11px",
+        fontWeight: "800",
+        flexShrink: 0,
+        minWidth: "14px"
+      }
+    }, i + 1, "."), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: "12px",
+        color: "#aeb6c5",
+        lineHeight: 1.5
+      }
+    }, cue)))));
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: "10px",
+      color: C.dim,
+      marginTop: "8px",
+      lineHeight: 1.5
+    }
+  }, "Usikker på en øvelse? Søk navnet + \"form\" på YouTube for video. God form > tung vekt.")), /*#__PURE__*/React.createElement(Section, {
+    title: "🧮 1RM-kalkulator",
+    col: C.green
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: "11px",
+      color: C.dim,
+      marginBottom: "10px",
+      lineHeight: 1.5
+    }
+  }, "Regn ut estimert maks (1 rep) fra et sett, og se hva du løfter for ulike reps."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: "8px",
+      marginBottom: "10px"
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    inputMode: "decimal",
+    value: rmKg,
+    onChange: e => setRmKg(e.target.value),
+    placeholder: "Vekt (kg)",
+    style: inputStyle
+  }), /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    inputMode: "numeric",
+    value: rmReps,
+    onChange: e => setRmReps(e.target.value),
+    placeholder: "Reps",
+    style: {
+      ...inputStyle,
+      maxWidth: "100px"
+    }
+  })), (() => {
+    const kg = parseFloat(rmKg.replace(",", ".")) || 0,
+      reps = parseInt(rmReps) || 0;
+    if (kg <= 0 || reps <= 0) return /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: "11px",
+        color: C.dim
+      }
+    }, "Skriv inn vekt og reps over.");
+    const orm = est1RM(kg, reps);
+    return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+      style: {
+        background: `${C.green}12`,
+        border: `1px solid ${C.green}30`,
+        borderRadius: "10px",
+        padding: "14px",
+        textAlign: "center",
+        marginBottom: "10px"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: "9px",
+        color: C.dim,
+        textTransform: "uppercase",
+        letterSpacing: "0.15em"
+      }
+    }, "Estimert 1RM"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: "28px",
+        fontWeight: "800",
+        color: C.green,
+        fontFamily: "monospace"
+      }
+    }, orm, " kg")), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "grid",
+        gridTemplateColumns: "repeat(4,1fr)",
+        gap: "6px"
+      }
+    }, [3, 5, 8, 10].map(r => /*#__PURE__*/React.createElement("div", {
+      key: r,
+      style: {
+        background: C.bg,
+        borderRadius: "8px",
+        padding: "10px 4px",
+        textAlign: "center"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: "15px",
+        fontWeight: "800",
+        color: C.ink,
+        fontFamily: "monospace"
+      }
+    }, weightForReps(orm, r)), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: "9px",
+        color: C.dim,
+        marginTop: "2px"
+      }
+    }, r, " reps")))));
+  })(), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: "14px",
+      borderTop: `1px solid ${C.faint}`,
+      paddingTop: "14px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: "11px",
+      color: C.dim,
+      marginBottom: "8px",
+      lineHeight: 1.5
+    }
+  }, "Når når du et mål-1RM? (basert på ~2,5 kg fremgang annenhver uke)"), /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    inputMode: "decimal",
+    value: rmGoal,
+    onChange: e => setRmGoal(e.target.value),
+    placeholder: "Mål-1RM (kg)",
+    style: {
+      ...inputStyle,
+      width: "100%"
+    }
+  }), (() => {
+    const kg = parseFloat(rmKg.replace(",", ".")) || 0,
+      reps = parseInt(rmReps) || 0,
+      goal = parseFloat(rmGoal.replace(",", ".")) || 0;
+    if (kg <= 0 || reps <= 0 || goal <= 0) return null;
+    const orm = est1RM(kg, reps);
+    if (goal <= orm) return /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: "12px",
+        color: C.green,
+        marginTop: "10px"
+      }
+    }, "🎉 Du er allerede der! Estimert 1RM (", orm, "kg) er over målet ditt.");
+    const diff = goal - orm;
+    const weeks = Math.ceil(diff / 2.5) * 2; // 2.5kg per 2 uker
+    const d = new Date();
+    d.setDate(d.getDate() + weeks * 7);
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: "12px",
+        color: "#aeb6c5",
+        marginTop: "10px",
+        lineHeight: 1.5
+      }
+    }, "Du mangler ", /*#__PURE__*/React.createElement("strong", {
+      style: {
+        color: C.green
+      }
+    }, diff, " kg"), ". Med jevn fremgang ~", /*#__PURE__*/React.createElement("strong", {
+      style: {
+        color: C.green
+      }
+    }, weeks, " uker"), " (rundt ", d.toLocaleDateString("no-NO", {
+      day: "numeric",
+      month: "long"
+    }), "). Husk: fremgang går saktere jo sterkere du blir.");
+  })()))), tab === "coach" && /*#__PURE__*/React.createElement("div", {
+    style: {
+      animation: "slideup 0.3s ease",
+      display: "flex",
+      flexDirection: "column"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "center",
+      marginBottom: "10px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: "10px",
+      color: useAI && apiKey ? C.green : C.dim,
+      background: C.panel,
+      border: `1px solid ${useAI && apiKey ? C.green + "40" : C.line}`,
+      borderRadius: "14px",
+      padding: "4px 12px"
+    }
+  }, useAI && apiKey ? "🤖 AI-coach aktiv" : "📋 Regelbasert (slå på AI i ⚙️)")), chat.length === 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: C.panel,
+      border: `1px solid ${C.line}`,
+      borderRadius: "14px",
+      padding: "18px",
+      marginBottom: "12px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: "15px",
+      fontWeight: "700",
+      marginBottom: "10px"
+    }
+  }, "👋 Hei! Jeg er coachen din."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: "13px",
+      color: "#aeb6c5",
+      lineHeight: 1.7,
+      marginBottom: "12px"
+    }
+  }, "Jeg kjenner planen, fasen og målene dine. Skriv når livet skjer:"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexWrap: "wrap",
+      gap: "6px"
+    }
+  }, ["Glemte gårsdagens økt", "Vil ha cheat meal", "Er litt forkjølet", "Er sliten i dag", "Hva skal jeg spise?"].map((s, i) => /*#__PURE__*/React.createElement("button", {
+    key: i,
+    className: "ptbtn",
+    onClick: () => setChatInput(s),
+    style: {
+      background: C.panel2,
+      border: `1px solid ${C.line}`,
+      borderRadius: "16px",
+      padding: "6px 12px",
+      fontSize: "11px",
+      color: "#aeb6c5",
+      cursor: "pointer"
+    }
+  }, s)))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      display: "flex",
+      flexDirection: "column",
+      gap: "10px",
+      marginBottom: "12px"
+    }
+  }, chat.map((m, i) => m.role === "user" ? /*#__PURE__*/React.createElement("div", {
+    key: i,
+    style: {
+      alignSelf: "flex-end",
+      maxWidth: "85%",
+      background: C.blue,
+      color: C.bg,
+      borderRadius: "14px 14px 4px 14px",
+      padding: "10px 14px",
+      fontSize: "13px",
+      fontWeight: "500"
+    }
+  }, m.text) : /*#__PURE__*/React.createElement("div", {
+    key: i,
+    style: {
+      alignSelf: "flex-start",
+      maxWidth: "92%",
+      background: C.panel,
+      border: `1px solid ${m.tone || C.line}40`,
+      borderLeft: `3px solid ${m.tone || C.blue}`,
+      borderRadius: "4px 14px 14px 14px",
+      padding: "14px",
+      animation: "slideup 0.3s ease"
+    }
+  }, m.ai && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: "9px",
+      color: C.green,
+      marginBottom: "6px",
+      textTransform: "uppercase",
+      letterSpacing: "0.1em"
+    }
+  }, "🤖 AI"), m.title && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: "14px",
+      fontWeight: "700",
+      color: m.tone || C.blue,
+      marginBottom: "8px"
+    }
+  }, m.title), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: "7px"
+    }
+  }, m.body.map((line, j) => /*#__PURE__*/React.createElement("div", {
+    key: j,
+    style: {
+      fontSize: "13px",
+      color: "#c2c9d6",
+      lineHeight: 1.6,
+      whiteSpace: "pre-wrap"
+    }
+  }, line))))), aiThinking && /*#__PURE__*/React.createElement("div", {
+    style: {
+      alignSelf: "flex-start",
+      background: C.panel,
+      border: `1px solid ${C.line}`,
+      borderRadius: "4px 14px 14px 14px",
+      padding: "14px"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: "13px",
+      color: C.dim,
+      animation: "pulse 1.2s infinite"
+    }
+  }, "Coachen tenker…")), aiError && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: "11px",
+      color: C.pink,
+      textAlign: "center"
+    }
+  }, "⚠️ ", aiError, " — brukte regelbasert svar."), /*#__PURE__*/React.createElement("div", {
+    ref: chatEnd
+  }))), tab === "more" && /*#__PURE__*/React.createElement("div", {
+    style: {
+      animation: "slideup 0.3s ease"
+    }
+  }, /*#__PURE__*/React.createElement(Section, {
+    title: "Vekt – logg hver dag",
+    col: C.green
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: "8px",
+      marginBottom: "10px"
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    inputMode: "decimal",
+    value: wInput,
+    onChange: e => setWInput(e.target.value),
+    onKeyDown: e => e.key === "Enter" && logWeight(),
+    placeholder: `Vekt i kg (sist: ${bw})`,
+    style: inputStyle
+  }), /*#__PURE__*/React.createElement("button", {
+    className: "ptbtn",
+    onClick: logWeight,
+    style: pillBtn(C.green)
+  }, "Lagre")), weightLog.length < 2 ? /*#__PURE__*/React.createElement(Empty, {
+    text: "Logg vekt minst 2 dager for graf med skjema-linje."
+  }) : (() => {
+    const data = weightLog.map(e => ({
+      y: e.kg
+    }));
+    const tdata = weightLog.map(e => ({
+      y: targetWeightForDate(e.date)
+    }));
+    return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(LineGraph, {
+      data: data,
+      color: C.green,
+      targetData: tdata
+    }), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: "11px",
+        color: "#aeb6c5",
+        marginTop: "10px",
+        lineHeight: 1.5
+      }
+    }, "Grønn = din vekt. Stiplet gul = skjema-mål. ", Math.abs(weightDelta) <= 0.4 ? "Du følger skjemaet perfekt!" : weightDelta > 0.4 ? `Du ligger ${weightDelta} kg over.` : `Du ligger ${Math.abs(weightDelta)} kg under.`));
+  })()), /*#__PURE__*/React.createElement(Section, {
+    title: "5K-tider · mål under 20:00",
+    col: C.green
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: "8px",
+      marginBottom: "10px",
+      alignItems: "center"
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    inputMode: "numeric",
+    value: runMin,
+    onChange: e => setRunMin(e.target.value),
+    placeholder: "min",
+    style: {
+      ...inputStyle,
+      textAlign: "center"
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: "20px",
+      color: C.dim,
+      fontWeight: "700"
+    }
+  }, ":"), /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    inputMode: "numeric",
+    value: runSec,
+    onChange: e => setRunSec(e.target.value),
+    placeholder: "sek",
+    style: {
+      ...inputStyle,
+      textAlign: "center"
+    }
+  }), /*#__PURE__*/React.createElement("button", {
+    className: "ptbtn",
+    onClick: logRun,
+    style: pillBtn(C.green)
+  }, "Lagre")), runLog.length < 1 ? /*#__PURE__*/React.createElement(Empty, {
+    text: "Logg en 5K-tid for å se progresjonen mot sub-20. Skriv f.eks. 22 og 35 for 22:35."
+  }) : (() => {
+    const best = Math.min(...runLog.map(r => r.sec));
+    const latest = runLog[runLog.length - 1].sec;
+    const subbed = best < 1200;
+    const data = runLog.map(r => ({
+      y: +(r.sec / 60).toFixed(2)
+    }));
+    const goalLine = runLog.map(() => ({
+      y: 20
+    }));
+    return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        justifyContent: "space-around",
+        marginBottom: "14px"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        textAlign: "center"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: "22px",
+        fontWeight: "800",
+        color: subbed ? C.green : C.amber,
+        fontFamily: "monospace"
+      }
+    }, fmtTime(best)), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: "9px",
+        color: C.dim,
+        textTransform: "uppercase",
+        letterSpacing: "0.1em"
+      }
+    }, "🏆 Beste")), /*#__PURE__*/React.createElement("div", {
+      style: {
+        textAlign: "center"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: "22px",
+        fontWeight: "800",
+        color: C.blue,
+        fontFamily: "monospace"
+      }
+    }, fmtPace(best)), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: "9px",
+        color: C.dim,
+        textTransform: "uppercase",
+        letterSpacing: "0.1em"
+      }
+    }, "Tempo")), /*#__PURE__*/React.createElement("div", {
+      style: {
+        textAlign: "center"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: "22px",
+        fontWeight: "800",
+        color: best <= 1200 ? C.green : C.pink,
+        fontFamily: "monospace"
+      }
+    }, best > 1200 ? "+" + fmtTime(best - 1200) : "-" + fmtTime(1200 - best)), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: "9px",
+        color: C.dim,
+        textTransform: "uppercase",
+        letterSpacing: "0.1em"
+      }
+    }, "til sub-20"))), /*#__PURE__*/React.createElement(LineGraph, {
+      data: data,
+      color: C.green,
+      targetData: goalLine
+    }), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: "11px",
+        color: "#aeb6c5",
+        marginTop: "10px",
+        lineHeight: 1.5
+      }
+    }, "Grønn = dine tider (minutter). Stiplet gul = 20-min-målet. ", subbed ? "🎉 Du har knekt 20 minutter! Gratulerer!" : `Du mangler ${fmtTime(best - 1200)} på sub-20. Du klarer det!`));
+  })()), /*#__PURE__*/React.createElement(Section, {
+    title: "Foto-dagbok",
+    col: C.pink,
+    right: /*#__PURE__*/React.createElement("button", {
+      className: "ptbtn",
+      onClick: () => photoInput.current?.click(),
+      style: {
+        background: `${C.pink}20`,
+        border: `1px solid ${C.pink}40`,
+        borderRadius: "8px",
+        padding: "5px 12px",
+        fontSize: "11px",
+        color: C.pink,
+        cursor: "pointer"
+      }
+    }, "+ Bilde")
+  }, /*#__PURE__*/React.createElement("input", {
+    ref: photoInput,
+    type: "file",
+    accept: "image/*",
+    onChange: addPhoto,
+    style: {
+      display: "none"
+    }
+  }), photos.length === 0 ? /*#__PURE__*/React.createElement(Empty, {
+    text: "Ta progresjonsbilder for å se utviklingen over tid. Samme positur og lys hver gang."
+  }) : /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "repeat(3,1fr)",
+      gap: "6px"
+    }
+  }, photos.map((ph, i) => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    style: {
+      position: "relative",
+      borderRadius: "8px",
+      overflow: "hidden",
+      aspectRatio: "3/4",
+      background: C.bg
+    }
+  }, /*#__PURE__*/React.createElement("img", {
+    src: ph.img,
+    style: {
+      width: "100%",
+      height: "100%",
+      objectFit: "cover"
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "absolute",
+      bottom: 0,
+      left: 0,
+      right: 0,
+      background: "linear-gradient(transparent,rgba(0,0,0,0.8))",
+      padding: "12px 6px 4px",
+      fontSize: "9px",
+      color: "#fff"
+    }
+  }, ph.date.slice(5), " · ", ph.w, "kg"))))), /*#__PURE__*/React.createElement(Section, {
+    title: "Søvn fra Garmin",
+    col: C.violet
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: "11px",
+      color: C.dim,
+      marginBottom: "10px",
+      lineHeight: 1.5
+    }
+  }, "Før inn det klokka viser i morges – timer og søvnscore (0-100)."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: "8px",
+      marginBottom: "8px"
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    inputMode: "decimal",
+    value: sleepHrs,
+    onChange: e => setSleepHrs(e.target.value),
+    placeholder: "Timer (f.eks. 7,5)",
+    style: inputStyle
+  }), /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    inputMode: "numeric",
+    value: sleepScore,
+    onChange: e => setSleepScore(e.target.value),
+    placeholder: "Score 0-100",
+    style: inputStyle
+  }), /*#__PURE__*/React.createElement("button", {
+    className: "ptbtn",
+    onClick: logSleep,
+    style: pillBtn(C.violet)
+  }, "Lagre")), sleepLog[ds] != null && (() => {
+    const hrs = sleepHours(sleepLog[ds]),
+      score = sleepScoreVal(sleepLog[ds]);
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: "8px",
+        marginBottom: "10px"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1,
+        background: C.bg,
+        borderRadius: "10px",
+        padding: "12px",
+        textAlign: "center"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: "20px",
+        fontWeight: "800",
+        color: hrs >= 8 ? C.green : hrs >= 7 ? C.amber : C.pink,
+        fontFamily: "monospace"
+      }
+    }, hrs, "t"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: "9px",
+        color: C.dim,
+        marginTop: "2px"
+      }
+    }, "I NATT")), score != null && /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1,
+        background: C.bg,
+        borderRadius: "10px",
+        padding: "12px",
+        textAlign: "center"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: "20px",
+        fontWeight: "800",
+        color: score >= 80 ? C.green : score >= 60 ? C.amber : C.pink,
+        fontFamily: "monospace"
+      }
+    }, score), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: "9px",
+        color: C.dim,
+        marginTop: "2px"
+      }
+    }, "SCORE")));
+  })(), sleepLog[ds] != null && (() => {
+    const h = sleepHours(sleepLog[ds]);
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: "12px",
+        color: "#aeb6c5",
+        lineHeight: 1.5
+      }
+    }, h >= 8 ? "Bra! 8+ timer gir best muskelvekst og restitusjon." : h >= 7 ? "OK, men sikt mot 8–9 for optimal fremgang." : "For lite. Søvn er din viktigste recovery – prioriter mer i natt.");
+  })(), (() => {
+    const days = Object.keys(sleepLog).sort().slice(-14);
+    if (days.length < 2) return null;
+    const hrsData = days.map(d => ({
+      y: +sleepHours(sleepLog[d]).toFixed(1)
+    }));
+    const avgH = (days.reduce((a, d) => a + sleepHours(sleepLog[d]), 0) / days.length).toFixed(1);
+    const scoreDays = days.filter(d => sleepScoreVal(sleepLog[d]) != null);
+    const avgS = scoreDays.length ? Math.round(scoreDays.reduce((a, d) => a + sleepScoreVal(sleepLog[d]), 0) / scoreDays.length) : null;
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginTop: "12px"
+      }
+    }, /*#__PURE__*/React.createElement(LineGraph, {
+      data: hrsData,
+      color: C.violet,
+      targetData: days.map(() => ({
+        y: 8
+      }))
+    }), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: "11px",
+        color: C.dim,
+        marginTop: "8px"
+      }
+    }, "Snitt ", days.length, " dager: ", avgH, "t", avgS != null ? ` · score ${avgS}` : "", ". Stiplet = 8t-mål."));
+  })()), /*#__PURE__*/React.createElement(Section, {
+    title: "Vann i dag",
+    col: C.blue,
+    right: water > 0 && /*#__PURE__*/React.createElement("button", {
+      className: "ptbtn",
+      onClick: resetWater,
+      style: {
+        background: "transparent",
+        border: `1px solid ${C.line}`,
+        borderRadius: "8px",
+        padding: "4px 10px",
+        fontSize: "10px",
+        color: C.dim,
+        cursor: "pointer"
+      }
+    }, "Nullstill")
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: "12px"
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "ptbtn",
+    onClick: addWater,
+    style: {
+      ...pillBtn(C.blue),
+      flex: 1
+    }
+  }, "💧 + Glass"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: "center",
+      minWidth: "70px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: "24px",
+      fontWeight: "800",
+      color: C.blue,
+      fontFamily: "monospace"
+    }
+  }, water), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: "9px",
+      color: C.dim
+    }
+  }, "av ~12 (3L)"))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: "3px",
+      marginTop: "10px"
+    }
+  }, Array.from({
+    length: 12
+  }).map((_, i) => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    style: {
+      flex: 1,
+      height: "8px",
+      borderRadius: "3px",
+      background: i < water ? C.blue : C.faint
+    }
+  })))), /*#__PURE__*/React.createElement(Section, {
+    title: "Kalorier siste dager",
+    col: C.amber
+  }, (() => {
+    const days = Object.keys(foodLog).sort().slice(-14);
+    if (days.length < 1) return /*#__PURE__*/React.createElement(Empty, {
+      text: "Før mat for å se historikk."
+    });
+    return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(MiniBar, {
+      data: days.map(d => foodLog[d].kcal),
+      color: C.amber
+    }), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: "11px",
+        color: C.dim,
+        marginTop: "8px"
+      }
+    }, "Snitt: ", Math.round(days.reduce((a, d) => a + foodLog[d].kcal, 0) / days.length), " kcal · mål ", macros.kcal));
+  })()), /*#__PURE__*/React.createElement(Section, {
+    title: "Kroppsmål (hver 2. uke)",
+    col: C.teal
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: "11px",
+      color: C.dim,
+      marginBottom: "10px",
+      lineHeight: 1.5
+    }
+  }, "Mål med målebånd i cm. Bedre enn vekta for å se rekomp – krympende midje + voksende arm = fett byttet mot muskel."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: "8px",
+      marginBottom: "8px"
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    inputMode: "decimal",
+    value: mWaist,
+    onChange: e => setMWaist(e.target.value),
+    placeholder: "Midje (cm)",
+    style: inputStyle
+  }), /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    inputMode: "decimal",
+    value: mArm,
+    onChange: e => setMArm(e.target.value),
+    placeholder: "Arm (cm)",
+    style: inputStyle
+  }), /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    inputMode: "decimal",
+    value: mChest,
+    onChange: e => setMChest(e.target.value),
+    placeholder: "Bryst (cm)",
+    style: inputStyle
+  }), /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    inputMode: "decimal",
+    value: mThigh,
+    onChange: e => setMThigh(e.target.value),
+    placeholder: "Lår (cm)",
+    style: inputStyle
+  })), /*#__PURE__*/React.createElement("button", {
+    className: "ptbtn",
+    onClick: logMeasure,
+    style: {
+      ...pillBtn(C.teal),
+      width: "100%"
+    }
+  }, "Lagre mål"), measureLog.length >= 1 && (() => {
+    const first = measureLog[0],
+      last = measureLog[measureLog.length - 1];
+    const row = (label, key, goodDown) => {
+      if (last[key] == null) return null;
+      const diff = first[key] != null ? +(last[key] - first[key]).toFixed(1) : null;
+      const good = diff == null ? null : goodDown ? diff <= 0 : diff >= 0;
+      return /*#__PURE__*/React.createElement("div", {
+        style: {
+          display: "flex",
+          justifyContent: "space-between",
+          padding: "7px 0",
+          borderBottom: `1px solid ${C.faint}`
+        }
+      }, /*#__PURE__*/React.createElement("span", {
+        style: {
+          fontSize: "12px",
+          color: C.ink
+        }
+      }, label), /*#__PURE__*/React.createElement("span", {
+        style: {
+          fontSize: "12px",
+          fontFamily: "monospace",
+          color: C.ink
+        }
+      }, last[key], " cm ", diff != null && measureLog.length > 1 && /*#__PURE__*/React.createElement("span", {
+        style: {
+          color: good ? C.green : C.pink
+        }
+      }, "(", diff > 0 ? "+" : "", diff, ")")));
+    };
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginTop: "12px"
+      }
+    }, row("Midje", "waist", true), row("Arm", "arm", false), row("Bryst", "chest", false), row("Lår", "thigh", false), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: "10px",
+        color: C.dim,
+        marginTop: "8px"
+      }
+    }, measureLog.length, " målinger. Endring vist fra første måling. Grønt = riktig retning."));
+  })()), /*#__PURE__*/React.createElement(Section, {
+    title: "Denne ukens oppsummering",
+    col: C.violet
+  }, (() => {
+    const wkDays = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date();
+      d.setDate(d.getDate() - (dayIdxMon0() - i));
+      wkDays.push(d.toISOString().slice(0, 10));
+    }
+    const wkFood = wkDays.filter(d => foodLog[d]).map(d => foodLog[d]);
+    const avgKcal = wkFood.length ? Math.round(wkFood.reduce((a, f) => a + f.kcal, 0) / wkFood.length) : null;
+    const wkSleep = wkDays.filter(d => sleepLog[d] != null).map(d => sleepHours(sleepLog[d]));
+    const avgSleep = wkSleep.length ? (wkSleep.reduce((a, h) => a + h, 0) / wkSleep.length).toFixed(1) : null;
+    const wStart = weightLog.find(e => e.date >= wkDays[0]);
+    const wNow = bw;
+    const wChange = wStart ? +(wNow - wStart.kg).toFixed(1) : null;
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "grid",
+        gridTemplateColumns: "1fr 1fr",
+        gap: "8px"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        background: C.bg,
+        borderRadius: "10px",
+        padding: "12px",
+        textAlign: "center"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: "20px",
+        fontWeight: "800",
+        color: phase.accent,
+        fontFamily: "monospace"
+      }
+    }, doneWk, "/7"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: "9px",
+        color: C.dim,
+        marginTop: "2px"
+      }
+    }, "ØKTER FULLFØRT")), /*#__PURE__*/React.createElement("div", {
+      style: {
+        background: C.bg,
+        borderRadius: "10px",
+        padding: "12px",
+        textAlign: "center"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: "20px",
+        fontWeight: "800",
+        color: C.amber,
+        fontFamily: "monospace"
+      }
+    }, avgKcal || "–"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: "9px",
+        color: C.dim,
+        marginTop: "2px"
+      }
+    }, "SNITT KCAL")), /*#__PURE__*/React.createElement("div", {
+      style: {
+        background: C.bg,
+        borderRadius: "10px",
+        padding: "12px",
+        textAlign: "center"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: "20px",
+        fontWeight: "800",
+        color: C.blue,
+        fontFamily: "monospace"
+      }
+    }, avgSleep || "–", "t"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: "9px",
+        color: C.dim,
+        marginTop: "2px"
+      }
+    }, "SNITT SØVN")), /*#__PURE__*/React.createElement("div", {
+      style: {
+        background: C.bg,
+        borderRadius: "10px",
+        padding: "12px",
+        textAlign: "center"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: "20px",
+        fontWeight: "800",
+        color: wChange == null ? C.dim : wChange > 0 ? C.green : C.pink,
+        fontFamily: "monospace"
+      }
+    }, wChange == null ? "–" : (wChange > 0 ? "+" : "") + wChange), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: "9px",
+        color: C.dim,
+        marginTop: "2px"
+      }
+    }, "VEKT DENNE UKA")));
+  })()), /*#__PURE__*/React.createElement(Section, {
+    title: "Treningsmengde (siste 6 uker)",
+    col: C.orange
+  }, (() => {
+    const weeks = [];
+    for (let w = 0; w < 6; w++) {
+      const wk = curWeek - w;
+      let count = 0;
+      for (let i = 0; i < 7; i++) {
+        if (sessionLog[`${wk}-${i}`]) count++;
+      }
+      weeks.unshift(count);
+    }
+    if (weeks.every(w => w === 0)) return /*#__PURE__*/React.createElement(Empty, {
+      text: "Fullfør økter for å se mengde-utviklingen over tid."
+    });
+    const avg = (weeks.reduce((a, w) => a + w, 0) / weeks.length).toFixed(1);
+    return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: "4px",
+        alignItems: "flex-end",
+        height: "60px"
+      }
+    }, weeks.map((w, i) => /*#__PURE__*/React.createElement("div", {
+      key: i,
+      style: {
+        flex: 1,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: "3px"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: "100%",
+        background: w >= 5 ? C.green : w >= 3 ? C.orange : C.pink,
+        borderRadius: "3px 3px 0 0",
+        height: `${w / 7 * 48}px`,
+        minHeight: "3px"
+      }
+    }), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: "9px",
+        color: C.dim,
+        fontFamily: "monospace"
+      }
+    }, w)))), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: "11px",
+        color: "#aeb6c5",
+        marginTop: "10px",
+        lineHeight: 1.5
+      }
+    }, "Snitt ", avg, " økter/uke siste 6 uker. ", avg < 3 ? "Litt lavt – sikt mot 4-5 for god fremgang." : avg >= 5 ? "Bra volum! Pass på restitusjon og deload." : "Solid og bærekraftig nivå."));
+  })()), /*#__PURE__*/React.createElement(Section, {
+    title: "🏆 Dine rekorder",
+    col: C.amber
+  }, (() => {
+    const liftPRs = EXERCISES.map(l => {
+      const pts = liftLog.filter(x => x.lift === l);
+      return pts.length ? {
+        lift: l,
+        kg: Math.max(...pts.map(p => p.kg))
+      } : null;
+    }).filter(Boolean);
+    const bestRun = runLog.length ? Math.min(...runLog.map(r => r.sec)) : null;
+    const maxStreak = (() => {
+      // beste streak noensinne
+      let best = 0,
+        cur = 0;
+      const allKeys = Object.keys(sessionLog).filter(k => sessionLog[k]);
+      return Math.max(streak, allKeys.length ? 1 : 0); // forenklet: nåværende eller minst 1
+    })();
+    if (liftPRs.length === 0 && !bestRun) return /*#__PURE__*/React.createElement(Empty, {
+      text: "Logg løft og 5K-tider for å samle rekordene dine her."
+    });
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        flexDirection: "column",
+        gap: "6px"
+      }
+    }, bestRun && /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        background: `${C.green}12`,
+        border: `1px solid ${C.green}30`,
+        borderRadius: "9px",
+        padding: "10px 12px"
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: "13px",
+        fontWeight: "600"
+      }
+    }, "🏃 Raskeste 5K"), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: "15px",
+        fontWeight: "800",
+        color: C.green,
+        fontFamily: "monospace"
+      }
+    }, fmtTime(bestRun))), streak > 1 && /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        background: `${C.orange}12`,
+        border: `1px solid ${C.orange}30`,
+        borderRadius: "9px",
+        padding: "10px 12px"
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: "13px",
+        fontWeight: "600"
+      }
+    }, "🔥 Nåværende streak"), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: "15px",
+        fontWeight: "800",
+        color: C.orange,
+        fontFamily: "monospace"
+      }
+    }, streak, " dager")), liftPRs.sort((a, b) => b.kg - a.kg).map((pr, i) => /*#__PURE__*/React.createElement("div", {
+      key: i,
+      style: {
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        background: `${C.amber}10`,
+        border: `1px solid ${C.amber}25`,
+        borderRadius: "9px",
+        padding: "10px 12px"
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: "13px",
+        fontWeight: "600"
+      }
+    }, "🏋️ ", pr.lift), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: "15px",
+        fontWeight: "800",
+        color: C.amber,
+        fontFamily: "monospace"
+      }
+    }, pr.kg, " kg"))));
+  })()))), tab === "coach" && /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "fixed",
+      bottom: "calc(62px + env(safe-area-inset-bottom))",
+      left: 0,
+      right: 0,
+      background: C.panel,
+      borderTop: `1px solid ${C.line}`,
+      padding: "10px 14px",
+      display: "flex",
+      gap: "8px",
+      maxWidth: "680px",
+      margin: "0 auto"
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    value: chatInput,
+    onChange: e => setChatInput(e.target.value),
+    onKeyDown: e => e.key === "Enter" && sendChat(),
+    placeholder: "Skriv situasjonen din…",
+    style: {
+      ...inputStyle,
+      flex: 1
+    }
+  }), /*#__PURE__*/React.createElement("button", {
+    className: "ptbtn",
+    onClick: sendChat,
+    disabled: aiThinking,
+    style: {
+      ...pillBtn(C.blue),
+      opacity: aiThinking ? 0.5 : 1
+    }
+  }, "Send")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "fixed",
+      bottom: 0,
+      left: 0,
+      right: 0,
+      background: `${C.bg2}f0`,
+      backdropFilter: "blur(20px)",
+      WebkitBackdropFilter: "blur(20px)",
+      borderTop: `1px solid ${C.line}`,
+      display: "flex",
+      maxWidth: "680px",
+      margin: "0 auto",
+      zIndex: 30,
+      paddingBottom: "env(safe-area-inset-bottom)",
+      paddingTop: "6px"
+    }
+  }, tabs.map(([v, l]) => {
+    const active = tab === v;
+    return /*#__PURE__*/React.createElement("button", {
+      key: v,
+      className: "ptbtn",
+      onClick: () => setTab(v),
+      style: {
+        flex: 1,
+        padding: "7px 2px 11px",
+        background: "transparent",
+        border: "none",
+        cursor: "pointer",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: "4px"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: "40px",
+        height: "30px",
+        borderRadius: "12px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: active ? `linear-gradient(160deg, ${phase.accent}28, ${phase.accent}10)` : "transparent",
+        border: active ? `1px solid ${phase.accent}40` : "1px solid transparent",
+        boxShadow: active ? `0 0 14px -4px ${phase.accent}88` : "none",
+        transition: "all 0.2s"
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: "16px",
+        opacity: active ? 1 : 0.45,
+        filter: active ? "none" : "grayscale(0.5)"
+      }
+    }, v === "today" ? "🏠" : v === "plan" ? "🏋️" : v === "food" ? "🍽️" : v === "lifts" ? "📊" : v === "coach" ? "💬" : "➕")), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: "8.5px",
+        color: active ? phase.accent : C.dim,
+        fontWeight: active ? "700" : "500",
+        letterSpacing: "0.02em"
+      }
+    }, l));
+  })), showSettings && /*#__PURE__*/React.createElement("div", {
+    onClick: () => setShowSettings(false),
+    style: {
+      position: "fixed",
+      inset: 0,
+      background: "rgba(0,0,0,0.7)",
+      zIndex: 50,
+      display: "flex",
+      alignItems: "flex-end",
+      justifyContent: "center"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    onClick: e => e.stopPropagation(),
+    style: {
+      background: C.panel,
+      borderTop: `1px solid ${C.line}`,
+      borderRadius: "20px 20px 0 0",
+      padding: "22px 18px calc(28px + env(safe-area-inset-bottom))",
+      width: "100%",
+      maxWidth: "680px",
+      animation: "slideup 0.25s ease",
+      maxHeight: "85vh",
+      overflowY: "auto"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: "40px",
+      height: "4px",
+      background: C.line,
+      borderRadius: "2px",
+      margin: "0 auto 18px"
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: "18px",
+      fontWeight: "800",
+      marginBottom: "4px"
+    }
+  }, "Innstillinger"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: "12px",
+      color: C.dim,
+      marginBottom: "18px"
+    }
+  }, "AI-coach og data"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: C.bg,
+      border: `1px solid ${C.line}`,
+      borderRadius: "12px",
+      padding: "14px",
+      marginBottom: "12px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: "4px"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: "14px",
+      fontWeight: "600"
+    }
+  }, "🤖 Bruk AI-coach"), /*#__PURE__*/React.createElement("button", {
+    className: "ptbtn",
+    onClick: () => setUseAI(!useAI),
+    style: {
+      width: "50px",
+      height: "28px",
+      borderRadius: "14px",
+      border: "none",
+      cursor: "pointer",
+      background: useAI ? C.green : C.line,
+      position: "relative"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      position: "absolute",
+      top: "3px",
+      left: useAI ? "25px" : "3px",
+      width: "22px",
+      height: "22px",
+      borderRadius: "50%",
+      background: "#fff",
+      transition: "left 0.2s"
+    }
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: "11px",
+      color: C.dim,
+      lineHeight: 1.5
+    }
+  }, "Av = gratis regelbasert. På = ekte AI (krever nøkkel under).")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: C.bg,
+      border: `1px solid ${C.line}`,
+      borderRadius: "12px",
+      padding: "14px",
+      marginBottom: "12px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: "13px",
+      fontWeight: "600",
+      marginBottom: "8px"
+    }
+  }, "API-nøkkel (Anthropic)"), /*#__PURE__*/React.createElement("input", {
+    type: "password",
+    value: keyDraft,
+    onChange: e => setKeyDraft(e.target.value),
+    placeholder: "sk-ant-...",
+    style: {
+      ...inputStyle,
+      width: "100%",
+      marginBottom: "8px",
+      fontSize: "13px"
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: "8px"
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "ptbtn",
+    onClick: () => {
+      setApiKey(keyDraft.trim());
+      setShowSettings(false);
+    },
+    style: {
+      ...pillBtn(C.green),
+      flex: 1
+    }
+  }, "Lagre nøkkel"), apiKey && /*#__PURE__*/React.createElement("button", {
+    className: "ptbtn",
+    onClick: () => {
+      setApiKey("");
+      setKeyDraft("");
+    },
+    style: {
+      ...pillBtn(C.line),
+      color: C.ink
+    }
+  }, "Fjern")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: "10px",
+      color: C.dim,
+      lineHeight: 1.5,
+      marginTop: "8px"
+    }
+  }, "Hent på console.anthropic.com → API Keys. Lagres kun på telefonen. ~10–40 kr/mnd.")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: C.bg,
+      border: `1px solid ${C.line}`,
+      borderRadius: "12px",
+      padding: "14px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: "13px",
+      fontWeight: "600",
+      marginBottom: "8px"
+    }
+  }, "Dine data"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: "11px",
+      color: C.dim,
+      lineHeight: 1.7
+    }
+  }, weightLog.length, " vekt · ", liftLog.length, " løft · ", Object.keys(foodLog).length, " matdager · ", runLog.length, " 5K-tider · ", photos.length, " bilder. Alt lagres lokalt.")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: C.bg,
+      border: `1px solid ${C.green}30`,
+      borderRadius: "12px",
+      padding: "14px",
+      marginTop: "12px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: "13px",
+      fontWeight: "600",
+      marginBottom: "4px"
+    }
+  }, "💾 Backup & flytting"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: "11px",
+      color: C.dim,
+      lineHeight: 1.5,
+      marginBottom: "10px"
+    }
+  }, "Lagre alle data som en fil. Ta backup jevnlig, og bruk «Importer» for å flytte til ny telefon."), /*#__PURE__*/React.createElement("input", {
+    ref: importInput,
+    type: "file",
+    accept: "application/json,.json",
+    onChange: importData,
+    style: {
+      display: "none"
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: "8px"
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "ptbtn",
+    onClick: exportData,
+    style: {
+      ...pillBtn(C.green),
+      flex: 1
+    }
+  }, "↓ Eksporter"), /*#__PURE__*/React.createElement("button", {
+    className: "ptbtn",
+    onClick: () => importInput.current?.click(),
+    style: {
+      ...pillBtn(C.blue),
+      flex: 1
+    }
+  }, "↑ Importer")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: "10px",
+      color: C.dim,
+      lineHeight: 1.5,
+      marginTop: "8px"
+    }
+  }, "Eksport lager en fil du kan lagre i Filer, e-poste deg selv eller legge i iCloud. Tips: ta backup én gang i måneden.")), /*#__PURE__*/React.createElement("button", {
+    className: "ptbtn",
+    onClick: () => setShowSettings(false),
+    style: {
+      ...pillBtn(C.blue),
+      width: "100%",
+      marginTop: "14px"
+    }
+  }, "Ferdig"))));
+}
+ReactDOM.createRoot(document.getElementById("root")).render(/*#__PURE__*/React.createElement(App, null));
+</script>
+</body>
+</html>
