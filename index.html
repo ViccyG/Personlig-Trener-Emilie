@@ -12,6 +12,24 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+(function(){
+  try {
+    firebase.initializeApp({
+      apiKey: "AIzaSyA6OUL_52OqYeFKsAMIaTN0hu6zE-opxUc",
+      authDomain: "treningsapp-d014b.firebaseapp.com",
+      projectId: "treningsapp-d014b",
+      storageBucket: "treningsapp-d014b.firebasestorage.app",
+      messagingSenderId: "705853340770",
+      appId: "1:705853340770:web:bd902df3fcb000c4f6a53b"
+    });
+    window.__db = firebase.firestore();
+    window.__fbReady = true;
+  } catch(e) { console.warn("Firebase init:", e); window.__fbReady = false; }
+})();
+</script>
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <style>
@@ -501,6 +519,37 @@ function save(key, val) {
     localStorage.setItem(key, JSON.stringify(val));
   } catch {}
 }
+
+// ═══════ SKY-SYNK ═══════
+function syncKeys(){ const out=[]; try{ for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(k && k.indexOf("pt_")===0 && k!=="pt_sync_pin") out.push(k);} }catch(e){} return out; }
+function getSyncPin(){ try{ return localStorage.getItem("pt_sync_pin")||""; }catch(e){ return ""; } }
+let __syncTimer=null;
+function cloudPush(){
+  const pin=getSyncPin();
+  if(!pin || !window.__fbReady || !window.__db) return;
+  if(__syncTimer) clearTimeout(__syncTimer);
+  __syncTimer=setTimeout(function(){
+    const payload={}; syncKeys().forEach(function(k){ const v=localStorage.getItem(k); if(v!==null) payload[k]=v; });
+    payload.__updated=Date.now();
+    window.__db.collection("brukere").doc(pin).set(payload).then(function(){ __setSyncBadge("saved"); }).catch(function(e){ console.warn("push:",e); __setSyncBadge("error"); });
+  },1500);
+}
+function cloudPull(pin){
+  return new Promise(function(resolve){
+    if(!pin || !window.__fbReady || !window.__db){ resolve({ok:false,reason:"offline"}); return; }
+    window.__db.collection("brukere").doc(pin).get().then(function(doc){
+      if(!doc.exists){ resolve({ok:true,empty:true}); return; }
+      const data=doc.data();
+      Object.keys(data).forEach(function(k){ if(k.indexOf("pt_")===0 && data[k]!=null){ try{ localStorage.setItem(k,data[k]); }catch(e){} } });
+      resolve({ok:true,empty:false});
+    }).catch(function(e){ console.warn("pull:",e); resolve({ok:false,reason:"error"}); });
+  });
+}
+const __origSave2 = save;
+save = function(k,v){ __origSave2(k,v); cloudPush(); };
+
+
+
 function todayStr() {
   return new Date().toISOString().slice(0, 10);
 }
@@ -4036,6 +4085,65 @@ function App() {
   }, "Ferdig"))));
 }
 ReactDOM.createRoot(document.getElementById("root")).render(/*#__PURE__*/React.createElement(App, null));
+</script>
+<script>
+// ═══════ SKY-SYNK KNAPP (utenfor React) ═══════
+(function(){
+  function pinStatus(){ return getSyncPin() ? "på" : "av"; }
+  function __setSyncBadge(state){
+    var b=document.getElementById("syncBadge"); if(!b) return;
+    if(state==="saved"){ b.textContent="☁︎"; b.style.color="#2fe0c8"; }
+    else if(state==="error"){ b.textContent="⚠︎"; b.style.color="#ff5277"; }
+    else if(state==="saving"){ b.textContent="⟳"; b.style.color="#f5b301"; }
+  }
+  window.__setSyncBadge=__setSyncBadge;
+  function makeBtn(){
+    if(document.getElementById("syncFab")) return;
+    var fab=document.createElement("button");
+    fab.id="syncFab";
+    fab.style.cssText="position:fixed;right:14px;bottom:86px;z-index:9999;width:46px;height:46px;border-radius:50%;border:1px solid rgba(47,224,200,0.4);background:rgba(16,19,26,0.92);backdrop-filter:blur(8px);color:#2fe0c8;font-size:20px;cursor:pointer;box-shadow:0 6px 18px -6px rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;";
+    var span=document.createElement("span"); span.id="syncBadge"; span.textContent = getSyncPin()? "☁︎":"☁"; span.style.color = getSyncPin()? "#2fe0c8":"#5c6678";
+    fab.appendChild(span);
+    fab.onclick=function(){
+      var cur=getSyncPin();
+      if(cur){
+        var v=confirm("Sky-synk er PÅ (kode: "+cur+").\n\nData synkes automatisk. Trykk OK for å slå AV synk (data blir liggende lokalt), eller Avbryt for å beholde.");
+        if(v){ try{ localStorage.removeItem("pt_sync_pin"); }catch(e){} alert("Synk slått av."); var s=document.getElementById("syncBadge"); s.textContent="☁"; s.style.color="#5c6678"; }
+      } else {
+        var pin=prompt("SKY-SYNK – aldri mist data 🔒\n\nVelg en kode (min. 4 tegn). Dataene dine lagres i skyen under koden.\nBruk SAMME kode på en annen telefon for å hente dem.\n\nSkriv inn kode:");
+        if(pin===null) return;
+        pin=pin.trim();
+        if(pin.length<4){ alert("Koden må være minst 4 tegn."); return; }
+        if(!window.__fbReady){ alert("Får ikke kontakt med skyen. Sjekk internett og prøv igjen."); return; }
+        __setSyncBadge("saving");
+        cloudPull(pin).then(function(r){
+          if(!r.ok){ alert("Kunne ikke koble til – sjekk nett."); __setSyncBadge("error"); return; }
+          try{ localStorage.setItem("pt_sync_pin",pin); }catch(e){}
+          if(r.empty){
+            var payload={}; syncKeys().forEach(function(k){ var v=localStorage.getItem(k); if(v!==null) payload[k]=v; }); payload.__updated=Date.now();
+            window.__db.collection("brukere").doc(pin).set(payload).then(function(){
+              alert("✓ Synk PÅ! Dataene dine er nå trygge i skyen.\n\nBruk koden \""+pin+"\" på andre enheter.");
+              var s=document.getElementById("syncBadge"); s.textContent="☁︎"; s.style.color="#2fe0c8";
+            });
+          } else {
+            alert("✓ Fant dataene dine i skyen! Laster inn...");
+            setTimeout(function(){ window.location.reload(); },600);
+          }
+        });
+      }
+    };
+    document.body.appendChild(fab);
+  }
+  if(document.readyState==="complete"||document.readyState==="interactive"){ setTimeout(makeBtn,800); }
+  else { window.addEventListener("DOMContentLoaded",function(){ setTimeout(makeBtn,800); }); }
+  // Ved oppstart: hvis PIN finnes, hent fra sky
+  setTimeout(function(){
+    var pin=getSyncPin();
+    if(pin && window.__fbReady){
+      cloudPull(pin).then(function(r){ if(r.ok && !r.empty){ /* allerede lokalt, ikke reload i loop */ } });
+    }
+  },1200);
+})();
 </script>
 </body>
 </html>
